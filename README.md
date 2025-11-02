@@ -353,13 +353,5 @@ Access via command: **"View Statistics"**
 
 ### Upcoming Features
 - Export flashcards to various formats
-- Quiz templates and customization
-- Advanced statistics and insights
-- Quiz sharing and collaboration
-
-## Acknowledgments
-
-- Built with the [Obsidian Plugin API](https://docs.obsidian.md)
-- FSRS algorithm implementation via [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs)
-- AI integration powered by OpenAI and Anthropic
-- Inspired by the Obsidian community's dedication to effective learning
+- AI quiz customization
+- Deck and quiz sharing and collaboration

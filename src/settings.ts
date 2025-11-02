@@ -21,10 +21,24 @@ export interface ReviewSettings {
 	enableKeyboardShortcuts: boolean;
 }
 
+export interface ExportSettings {
+	defaultFormat: 'anki' | 'csv' | 'csv-quizlet' | 'json' | 'markdown';
+	defaultLocation: string;
+	includeScheduling: boolean;
+	includeTags: boolean;
+	includeMedia: boolean;
+	csvDelimiter: ',' | ';' | '\t';
+	csvIncludeBOM: boolean;
+	ankiDeckPrefix: string;
+	ankiConvertMarkdown: boolean;
+	ankiPlainTextMode: boolean;
+}
+
 export interface FlashlySettings {
 	parser: FlashcardParserSettings;
 	review: ReviewSettings;
 	quiz: AIQuizSettings;
+	export: ExportSettings;
 }
 
 export const DEFAULT_SETTINGS: FlashlySettings = {
@@ -60,5 +74,17 @@ export const DEFAULT_SETTINGS: FlashlySettings = {
 		deckFilter: [],
 		enableKeyboardShortcuts: true
 	},
-	quiz: DEFAULT_AI_QUIZ_SETTINGS
+	quiz: DEFAULT_AI_QUIZ_SETTINGS,
+	export: {
+		defaultFormat: 'csv',
+		defaultLocation: '',
+		includeScheduling: true,
+		includeTags: true,
+		includeMedia: false,
+		csvDelimiter: ',',
+		csvIncludeBOM: true,
+		ankiDeckPrefix: 'Flashly',
+		ankiConvertMarkdown: true,
+		ankiPlainTextMode: false
+	}
 };

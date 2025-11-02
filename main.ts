@@ -13,6 +13,8 @@ import { QuizStorageService } from './src/services/quiz-storage';
 import { StartReviewCommand } from './src/commands/start-review';
 import { RefreshDecksCommand } from './src/commands/refresh-decks-command';
 import { GenerateQuizCommand } from './src/commands/generate-quiz-command';
+import { ExportService } from './src/services/export-service';
+import { ExportCommand } from './src/commands/export-command';
 
 export default class FlashlyPlugin extends Plugin {
 	settings: FlashlySettings;
@@ -24,6 +26,8 @@ export default class FlashlyPlugin extends Plugin {
 	startReviewCommand: StartReviewCommand;
 	refreshDecksCommand: RefreshDecksCommand;
 	generateQuizCommand: GenerateQuizCommand;
+	exportService: ExportService;
+	exportCommand: ExportCommand;
 	statusBarItem: HTMLElement;
 
 	async onload() {
@@ -39,6 +43,9 @@ export default class FlashlyPlugin extends Plugin {
 
 		this.parser = new FlashcardParser(this.settings.parser, this.app);
 		this.reviewQueue = new ReviewQueueService(this.storage);
+
+		// Initialize export service
+		this.exportService = new ExportService(this.app, this.storage, () => this.settings);
 
 		// Register flashcard browser view
 		this.registerView(
@@ -91,6 +98,14 @@ export default class FlashlyPlugin extends Plugin {
 			id: this.generateQuizCommand.getId(),
 			name: this.generateQuizCommand.getName(),
 			callback: this.generateQuizCommand.getCallback()
+		});
+
+		// Add export command
+		this.exportCommand = new ExportCommand(this.app, this.exportService);
+		this.addCommand({
+			id: this.exportCommand.getId(),
+			name: this.exportCommand.getName(),
+			callback: this.exportCommand.getCallback()
 		});
 
 		// Add command to open flashcard browser
@@ -218,6 +233,10 @@ export default class FlashlyPlugin extends Plugin {
 			quiz: {
 				...DEFAULT_SETTINGS.quiz,
 				...(data?.quiz ?? {})
+			},
+			export: {
+				...DEFAULT_SETTINGS.export,
+				...(data?.export ?? {})
 			}
 		};
 	}
