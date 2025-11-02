@@ -23,6 +23,8 @@ docs/
 IMPLEMENTATION_PLAN.md
 AGENTS.md
 README.old.md
+agents.md
+channellog.md
 
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store

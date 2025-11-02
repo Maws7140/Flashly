@@ -586,7 +586,7 @@ export class FlashlySettingTab extends PluginSettingTab {
 			.setName('Replay Tutorial')
 			.setDesc('Show the first-time user tutorial again')
 			.addButton(button => button
-				.setButtonText('Start Tutorial')
+				.setButtonText('Replay Tutorial')
 				.setTooltip('Replay the interactive tutorial')
 				.onClick(() => {
 					const modal = new TutorialModal(this.app, {

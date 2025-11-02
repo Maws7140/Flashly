@@ -143,6 +143,8 @@ export class TutorialModal extends Modal {
 		this.close();
 	}
 
+	// The icons array is intentionally shorter than the possible number of steps.
+	// If a step index exceeds the array length, the 'info' icon will be used as a fallback.
 	private getIconForStep(stepIndex: number): string {
 		const icons = ['sparkles', 'pencil', 'search', 'target', 'layers'];
 		return icons[stepIndex] || 'info';

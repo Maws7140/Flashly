@@ -55,22 +55,21 @@ export class ExportModal extends Modal {
 		
 		selectAllBtn.onclick = () => {
 			this.selectedDecks = [...decks];
-			checkboxes.forEach(cb => cb.checked = true);
+			toggles.forEach(t => t.setValue(true));
 		};
 		
 		deselectAllBtn.onclick = () => {
 			this.selectedDecks = [];
-			checkboxes.forEach(cb => cb.checked = false);
+			toggles.forEach(t => t.setValue(false));
 		};
 
 		// Deck checkboxes
-		const checkboxes: HTMLInputElement[] = [];
+		const toggles: any[] = [];
 		decks.forEach(deck => {
 			const setting = new Setting(deckContainer)
 				.setName(deck)
 				.addToggle(toggle => {
-					const checkbox = toggle.toggleEl.querySelector('input') as HTMLInputElement;
-					checkboxes.push(checkbox);
+					toggles.push(toggle);
 					
 					toggle
 						.setValue(true)
