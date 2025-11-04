@@ -179,7 +179,7 @@ class GenerateQuizModal extends Modal {
 
 			new Setting(contentEl)
 				.setName('Use AI to generate questions')
-				.setDesc(`Uses ${this.plugin.settings.quiz.provider.toUpperCase()} to create creative quiz questions`)
+				.setDesc('Use AI to create creative quiz questions')
 				.addToggle(toggle => {
 					toggle.setValue(this.config.useAI);
 					toggle.onChange(value => {

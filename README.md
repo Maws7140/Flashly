@@ -2,6 +2,8 @@
 
 Flashly is a powerful Obsidian plugin that transforms your notes into flashcards using spaced repetition learning powered by FSRS (Free Spaced Repetition Scheduler).
 
+![Flashly Quiz Interface](screenshots/flashlyq.png)
+
 ## Features
 
 ### Multiple Flashcard Formats
@@ -57,6 +59,8 @@ A powerful browser view to manage your flashcards:
 - **Search and filter** by deck, status, or content
 - **Study directly** from the browser
 - **Track progress** for each deck
+
+![Flashcard Browser](screenshots/Flashlyqh.png)
 
 ### Review Sessions
 
@@ -356,6 +360,10 @@ Track your learning progress with comprehensive statistics:
 - **Activity Heatmap**: 30-day review activity visualization
 - **Card Distribution**: Visual breakdown by learning state
 - **Quiz Statistics**: Quiz history and performance metrics
+
+![Statistics Dashboard](screenshots/flashlysd1.png)
+
+![Detailed Statistics](screenshots/flashlysd3.png)
 
 Access via command: **"View Statistics"**
 
