@@ -198,7 +198,11 @@
 }
 
 .deck-sort-select {
-  padding: 10px 12px;
+  /* Ensure the selected text and native arrow aren’t clipped */
+  box-sizing: border-box;
+  height: 36px;
+  line-height: 1.2;
+  padding: 8px 28px 8px 12px; /* extra right padding for arrow */
   background: var(--background-primary);
   border: 2px solid var(--background-modifier-border);
   border-radius: 6px;
@@ -207,6 +211,8 @@
   cursor: pointer;
   transition: border-color 0.2s;
   min-width: 150px;
+  white-space: nowrap; /* keep label on one line */
+  overflow: visible;   /* avoid inner clipping on some engines */
 }
 
 .deck-sort-select:hover {
@@ -445,7 +451,8 @@
   justify-content: center;
   margin-bottom: 20px;
   min-height: 250px;
-  perspective: 1000px; /* Enable 3D perspective for flip effect */
+  perspective: 1200px; /* Enable 3D perspective for flip effect */
+  perspective-origin: center;
 }
 
 /* Card flip container */
@@ -454,6 +461,7 @@
   max-width: 600px;
   height: 100%;
   min-height: 300px;
+  position: relative;
 }
 
 .card-inner {
@@ -461,8 +469,13 @@
   width: 100%;
   height: 100%;
   min-height: 300px;
-  transition: transform 0.6s;
+  transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
   transform-style: preserve-3d;
+}
+
+/* Add will-change only during animation for GPU acceleration */
+.card-inner.animating {
+  will-change: transform;
 }
 
 .card-inner.flipped {
@@ -474,6 +487,7 @@
   position: absolute;
   width: 100%;
   height: 100%;
+  min-height: 300px;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   background: var(--background-primary);
@@ -488,6 +502,9 @@
   gap: 24px;
   overflow: hidden;
   box-sizing: border-box;
+  transition: box-shadow 0.3s, border-color 0.3s;
+  /* Layout containment for performance */
+  contain: layout style paint;
 }
 
 .card-front {
@@ -532,24 +549,28 @@
   width: 100%;
   word-break: break-word;
   overflow-wrap: break-word;
-  max-height: 350px;
+  max-height: 400px;
   overflow-y: auto;
   overflow-x: hidden;
   padding-right: 8px;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
 }
 
 /* Custom scrollbar for card text */
 .card-text::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 
 .card-text::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--background-secondary);
+  border-radius: 4px;
 }
 
 .card-text::-webkit-scrollbar-thumb {
   background: var(--background-modifier-border);
-  border-radius: 3px;
+  border-radius: 4px;
+  transition: background 0.2s;
 }
 
 .card-text::-webkit-scrollbar-thumb:hover {
@@ -1154,67 +1175,133 @@
   box-sizing: border-box;
 }
 
-/* Card Container with improved styling */
+/* Card Container with improved styling and 3D perspective */
 .flashly-card-container {
-  border: 2px solid var(--background-modifier-border);
-  border-radius: 12px;
-  background: var(--background-primary);
-  padding: 32px;
-  min-height: 200px;
-  max-height: 60vh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  perspective: 1200px; /* Enable 3D space */
+  perspective-origin: center;
   margin-bottom: 20px;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 200px;
   position: relative;
 }
 
-.flashly-card-container:hover {
+/* Card inner - rotates for flip effect */
+.flashly-card-inner {
+  position: relative;
+  width: 100%;
+  height: 60vh;
+  max-height: 60vh;
+  transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+/* Add will-change only during animation for GPU acceleration */
+.flashly-card-inner.animating {
+  will-change: transform;
+}
+
+/* Flipped state */
+.flashly-card-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+/* Card faces (front and back) */
+.flashly-card-face {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  max-height: 60vh;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border: 2px solid var(--background-modifier-border);
+  border-radius: 12px;
+  background: var(--background-primary);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s;
+  /* Remove contain paint to fix border visibility */
+  contain: layout style;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Clickable card styling */
+.flashly-card-clickable {
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.flashly-card-clickable:hover {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
   border-color: var(--interactive-accent);
 }
 
-.flashly-card-front,
+.flashly-card-clickable:active .flashly-card-content {
+  transform: scale(0.99);
+}
+
+/* Front face (question) */
+.flashly-card-front {
+  transform: rotateY(0deg);
+}
+
+/* Back face (answer) - pre-rotated 180 degrees */
 .flashly-card-back {
-  white-space: normal;
-  font-size: 1.15em;
-  line-height: 1.6;
-  color: var(--text-normal);
-  word-break: break-word;
-  overflow-wrap: break-word;
-  text-align: left;
-  max-width: 100%;
-  width: 100%;
-  box-sizing: border-box;
-  overflow-x: auto;
-  padding-bottom: 16px;
+  transform: rotateY(180deg);
 }
 
-/* Add constraints to all nested elements */
-.flashly-card-front *,
-.flashly-card-back * {
-  max-width: 100%;
-  overflow-wrap: break-word;
+/* Card content wrapper with scrolling for large content */
+.flashly-card-content {
+  padding: 32px;
+  height: 100%;
+  max-height: calc(60vh - 64px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
   box-sizing: border-box;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
-/* Markdown content styling in review modal */
-.flashly-card-front p,
-.flashly-card-back p {
+/* Improved scrollbar for card content */
+.flashly-card-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.flashly-card-content::-webkit-scrollbar-track {
+  background: var(--background-secondary);
+  border-radius: 4px;
+}
+
+.flashly-card-content::-webkit-scrollbar-thumb {
+  background: var(--background-modifier-border);
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.flashly-card-content::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+/* Markdown content styling in review modal cards */
+.flashly-card-content p {
   margin: 0.5em 0;
 }
 
-.flashly-card-front pre,
-.flashly-card-back pre {
+.flashly-card-content p {
+  margin: 0.5em 0;
+}
+
+.flashly-card-content pre {
   background: var(--code-background);
   border-radius: 6px;
   padding: 12px;
-  overflow-x: hidden;
-  overflow-y: visible;
+  overflow-x: auto;
   margin: 12px 0;
   max-width: 100%;
   width: 100%;
@@ -1224,8 +1311,7 @@
   overflow-wrap: break-word;
 }
 
-.flashly-card-front code,
-.flashly-card-back code {
+.flashly-card-content code {
   background: var(--code-background);
   padding: 2px 6px;
   border-radius: 3px;
@@ -1236,15 +1322,13 @@
   white-space: pre-wrap;
 }
 
-.flashly-card-front pre code,
-.flashly-card-back pre code {
+.flashly-card-content pre code {
   background: transparent;
   padding: 0;
   border-radius: 0;
 }
 
-.flashly-card-front img,
-.flashly-card-back img {
+.flashly-card-content img {
   max-width: 100%;
   height: auto;
   border-radius: 6px;
@@ -1252,21 +1336,17 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.flashly-card-front ul,
-.flashly-card-front ol,
-.flashly-card-back ul,
-.flashly-card-back ol {
+.flashly-card-content ul,
+.flashly-card-content ol {
   margin: 8px 0;
   padding-left: 24px;
 }
 
-.flashly-card-front li,
-.flashly-card-back li {
+.flashly-card-content li {
   margin: 4px 0;
 }
 
-.flashly-card-front blockquote,
-.flashly-card-back blockquote {
+.flashly-card-content blockquote {
   border-left: 3px solid var(--interactive-accent);
   padding-left: 16px;
   margin: 12px 0;
@@ -1274,8 +1354,7 @@
   font-style: italic;
 }
 
-.flashly-card-front table,
-.flashly-card-back table {
+.flashly-card-content table {
   border-collapse: collapse;
   width: 100%;
   max-width: 100%;
@@ -1284,10 +1363,8 @@
   overflow-wrap: break-word;
 }
 
-.flashly-card-front th,
-.flashly-card-front td,
-.flashly-card-back th,
-.flashly-card-back td {
+.flashly-card-content th,
+.flashly-card-content td {
   border: 1px solid var(--background-modifier-border);
   padding: 8px;
   text-align: left;
@@ -1296,118 +1373,27 @@
   word-break: break-word;
 }
 
-.flashly-card-front th,
-.flashly-card-back th {
+.flashly-card-content th {
   background: var(--background-secondary);
   font-weight: 600;
 }
 
-.flashly-card-front h1,
-.flashly-card-front h2,
-.flashly-card-front h3,
-.flashly-card-front h4,
-.flashly-card-front h5,
-.flashly-card-front h6,
-.flashly-card-back h1,
-.flashly-card-back h2,
-.flashly-card-back h3,
-.flashly-card-back h4,
-.flashly-card-back h5,
-.flashly-card-back h6 {
+.flashly-card-content h1,
+.flashly-card-content h2,
+.flashly-card-content h3,
+.flashly-card-content h4,
+.flashly-card-content h5,
+.flashly-card-content h6 {
   margin: 16px 0 8px 0;
   font-weight: 600;
 }
 
-.flashly-card-front h1,
-.flashly-card-back h1 { font-size: 1.4em; }
-.flashly-card-front h2,
-.flashly-card-back h2 { font-size: 1.3em; }
-.flashly-card-front h3,
-.flashly-card-back h3 { font-size: 1.2em; }
-.flashly-card-front h4,
-.flashly-card-back h4 { font-size: 1.1em; }
-.flashly-card-front h5,
-.flashly-card-back h5 { font-size: 1em; }
-.flashly-card-front h6,
-.flashly-card-back h6 { font-size: 0.95em; }
-
-.flashly-card-front {
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.flashly-card-back {
-  display: none;
-  margin-top: 20px;
-  border-top: 2px solid var(--background-modifier-border);
-  padding-top: 20px;
-  font-weight: 400;
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-.flashly-card-back.is-visible {
-  display: block;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Scroll indicator for card container */
-.flashly-card-container::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 40px;
-  background: linear-gradient(to bottom, transparent, var(--background-primary));
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  border-radius: 0 0 10px 10px;
-}
-
-.flashly-card-container:not(.scrolled-to-bottom)::after {
-  opacity: 0.8;
-}
-
-/* Toggle Button */
-.flashly-toggle-btn {
-  width: 100%;
-  max-width: 100%;
-  padding: 12px 24px;
-  margin-top: 8px;
-  margin-bottom: 20px;
-  background: var(--interactive-accent);
-  box-sizing: border-box;
-  color: var(--text-on-accent);
-  border: none;
-  border-radius: 8px;
-  font-size: 1em;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.flashly-toggle-btn:hover {
-  background: var(--interactive-accent-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.flashly-toggle-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
+.flashly-card-content h1 { font-size: 1.4em; }
+.flashly-card-content h2 { font-size: 1.3em; }
+.flashly-card-content h3 { font-size: 1.2em; }
+.flashly-card-content h4 { font-size: 1.1em; }
+.flashly-card-content h5 { font-size: 1em; }
+.flashly-card-content h6 { font-size: 0.95em; }
 
 /* Rating Buttons Container - Modern horizontal layout */
 .flashly-rating-container {
@@ -1552,14 +1538,17 @@
     padding: 16px;
   }
 
-  .flashly-card-container {
-    padding: 20px;
-    min-height: 150px;
+  .flashly-card-inner {
+    max-height: 60vh;
   }
 
-  .flashly-card-front,
-  .flashly-card-back {
+  .flashly-card-content {
+    padding: 20px;
     font-size: 1em;
+  }
+
+  .flashly-card-face {
+    padding: 20px;
   }
 
   .flashly-rating-container {

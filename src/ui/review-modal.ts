@@ -11,14 +11,16 @@ interface ReviewModalOptions {
 const RATING_ORDER: SupportedRating[] = [Rating.Again, Rating.Hard, Rating.Good, Rating.Easy];
 
 export class ReviewModal extends Modal {
+	private cardContainer!: HTMLElement;
+	private cardInner!: HTMLElement;
 	private frontEl!: HTMLElement;
 	private backEl!: HTMLElement;
-	private cardContainer!: HTMLElement;
-	private toggleBtn!: HTMLButtonElement;
 	private progressEl!: HTMLElement;
 	private readonly ratingButtons = new Map<SupportedRating, HTMLButtonElement>();
 	private readonly boundKeydown: (event: KeyboardEvent) => void;
 	private component: Component | null = null;
+	private isAnimating = false;
+	private currentCardId: string | null = null;
 
 	constructor(
 		app: App,
@@ -66,22 +68,28 @@ export class ReviewModal extends Modal {
 		const title = contentEl.createEl('h2', { text: 'Flashly Review Session' });
 		title.addClass('flashly-review-title');
 
+		// Create 3D flip structure
 		this.cardContainer = contentEl.createDiv({ cls: 'flashly-card-container' });
-		this.frontEl = this.cardContainer.createDiv({ cls: 'flashly-card-front' });
-		this.backEl = this.cardContainer.createDiv({ cls: 'flashly-card-back' });
-
-		// Add scroll listener to manage scroll indicator
-		this.cardContainer.addEventListener('scroll', () => {
-			this.updateScrollIndicator();
+		this.cardInner = this.cardContainer.createDiv({ cls: 'flashly-card-inner' });
+		
+		// Front face (question) - clickable
+		const frontFace = this.cardInner.createDiv({ cls: 'flashly-card-face flashly-card-front flashly-card-clickable' });
+		this.frontEl = frontFace.createDiv({ cls: 'flashly-card-content' });
+		frontFace.addEventListener('click', (e) => {
+			// Only flip if clicking the card face itself, not when scrolling
+			if (e.target === frontFace || frontFace.contains(e.target as Node)) {
+				this.toggleWithAnimation();
+			}
 		});
-
-		this.toggleBtn = contentEl.createEl('button', {
-			text: 'Show answer',
-			cls: 'mod-cta flashly-toggle-btn'
-		});
-		this.toggleBtn.addEventListener('click', () => {
-			this.viewModel.toggleAnswer();
-			this.renderCard();
+		
+		// Back face (answer) - clickable
+		const backFace = this.cardInner.createDiv({ cls: 'flashly-card-face flashly-card-back flashly-card-clickable' });
+		this.backEl = backFace.createDiv({ cls: 'flashly-card-content' });
+		backFace.addEventListener('click', (e) => {
+			// Only flip if clicking the card face itself, not when scrolling
+			if (e.target === backFace || backFace.contains(e.target as Node)) {
+				this.toggleWithAnimation();
+			}
 		});
 
 		const ratingsContainer = contentEl.createDiv({ cls: 'flashly-rating-container' });
@@ -109,26 +117,33 @@ export class ReviewModal extends Modal {
 		this.renderCard();
 		this.renderRatings();
 		this.renderProgress();
-		this.updateScrollIndicator();
-	}
-
-	private updateScrollIndicator(): void {
-		if (!this.cardContainer) return;
-		
-		const { scrollTop, scrollHeight, clientHeight } = this.cardContainer;
-		const isScrolledToBottom = scrollTop + clientHeight >= scrollHeight - 10;
-		
-		if (isScrolledToBottom) {
-			this.cardContainer.addClass('scrolled-to-bottom');
-		} else {
-			this.cardContainer.removeClass('scrolled-to-bottom');
-		}
 	}
 
 	private renderCard(): void {
 		const current = this.viewModel.getCurrentCard();
 		if (!current) {
 			return;
+		}
+
+		const showingAnswer = this.viewModel.getProgress().showingAnswer;
+		const isNewCard = this.currentCardId !== current.card.id;
+
+		// When switching to a new card, instantly reset to front without animation
+		if (isNewCard && !showingAnswer) {
+			// Disable transitions temporarily
+			this.cardInner.style.transition = 'none';
+			this.cardInner.removeClass('flipped');
+			// Force browser to apply the change
+			void this.cardInner.offsetHeight;
+			// Re-enable transitions
+			this.cardInner.style.transition = '';
+			this.currentCardId = current.card.id;
+		} else {
+			// Normal flip animation for same card
+			this.cardInner.toggleClass('flipped', showingAnswer);
+			if (isNewCard) {
+				this.currentCardId = current.card.id;
+			}
 		}
 
 		// Clean up old component and create fresh one for this render
@@ -160,10 +175,6 @@ export class ReviewModal extends Modal {
 				this.component
 			);
 		}
-
-		const showingAnswer = this.viewModel.getProgress().showingAnswer;
-		this.backEl.toggleClass('is-visible', showingAnswer);
-		this.toggleBtn.setText(showingAnswer ? 'Hide answer' : 'Show answer');
 	}
 
 	private renderRatings(): void {
@@ -218,8 +229,7 @@ export class ReviewModal extends Modal {
 		switch (evt.key) {
 			case ' ':
 				evt.preventDefault();
-				this.viewModel.toggleAnswer();
-				this.renderCard();
+				this.toggleWithAnimation();
 				break;
 			case '1':
 				evt.preventDefault();
@@ -264,6 +274,27 @@ export class ReviewModal extends Modal {
 			cls: 'mod-cta'
 		});
 		closeBtn.addEventListener('click', () => this.close());
+	}
+
+	private toggleWithAnimation(): void {
+		if (this.isAnimating) {
+			return; // Prevent multiple simultaneous animations
+		}
+
+		this.isAnimating = true;
+
+		// Add will-change for GPU acceleration
+		this.cardInner.addClass('animating');
+
+		// Toggle the answer state
+		this.viewModel.toggleAnswer();
+		this.renderCard();
+
+		// Remove will-change after animation completes to free GPU memory
+		setTimeout(() => {
+			this.cardInner.removeClass('animating');
+			this.isAnimating = false;
+		}, 400); // Match CSS transition duration
 	}
 
 	private formatInterval(intervalDays: number): string {

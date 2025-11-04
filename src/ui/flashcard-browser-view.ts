@@ -13,6 +13,7 @@ export class FlashcardBrowserView extends ItemView {
   private deckSearchQuery = '';
   private deckSortBy: DeckSortOption = 'name-asc';
   private component: Component = new Component();
+  private isAnimating = false;
 
   constructor(leaf: WorkspaceLeaf, plugin: FlashlyPlugin) {
     super(leaf);
@@ -501,8 +502,7 @@ export class FlashcardBrowserView extends ItemView {
       text: 'Show Answer',
     });
     frontBtn.addEventListener('click', () => {
-      this.viewModel.flipCard();
-      this.render();
+      this.flipWithAnimation();
     });
 
     // Back of card (answer)
@@ -519,8 +519,7 @@ export class FlashcardBrowserView extends ItemView {
       text: 'Show Question',
     });
     backBtn.addEventListener('click', () => {
-      this.viewModel.flipCard();
-      this.render();
+      this.flipWithAnimation();
     });
   }
 
@@ -659,6 +658,36 @@ export class FlashcardBrowserView extends ItemView {
   }
 
   /**
+   * Flip card with optimized animation using will-change
+   */
+  private flipWithAnimation(): void {
+    if (this.isAnimating) {
+      return; // Prevent multiple simultaneous animations
+    }
+
+    this.isAnimating = true;
+
+    // Find card-inner element
+    const cardInner = this.containerEl.querySelector('.card-inner') as HTMLElement;
+    if (cardInner) {
+      // Add will-change for GPU acceleration
+      cardInner.addClass('animating');
+    }
+
+    // Perform the flip
+    this.viewModel.flipCard();
+    this.render();
+
+    // Remove will-change after animation completes to free GPU memory
+    setTimeout(() => {
+      if (cardInner) {
+        cardInner.removeClass('animating');
+      }
+      this.isAnimating = false;
+    }, 400); // Match CSS transition duration
+  }
+
+  /**
    * Handle keyboard navigation
    */
   private handleKeyPress(evt: KeyboardEvent) {
@@ -725,8 +754,7 @@ export class FlashcardBrowserView extends ItemView {
       case ' ':
       case 'f':
         evt.preventDefault();
-        this.viewModel.flipCard();
-        this.render();
+        this.flipWithAnimation();
         break;
 
       case 'Escape':

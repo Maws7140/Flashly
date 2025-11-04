@@ -104,7 +104,12 @@ export class ReviewQueueService {
 			return false;
 		}
 
-		return card.fsrsCard.due.getTime() <= current.getTime();
+		// Check if card is due by end of current day (not just current moment)
+		// This matches the "due today" count shown in the UI
+		const endOfToday = new Date(current);
+		endOfToday.setHours(23, 59, 59, 999);
+
+		return card.fsrsCard.due.getTime() <= endOfToday.getTime();
 	}
 
 	private sortDue(cards: FlashlyCard[]): FlashlyCard[] {
