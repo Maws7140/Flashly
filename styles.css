@@ -1,5 +1,14 @@
 /* Flashcard Browser View Styles */
 
+/* ========== UTILITY CLASSES ========== */
+.no-transition {
+  transition: none !important;
+}
+
+.flashly-system-prompt-textarea {
+  width: 100%;
+}
+
 /* ========== ICON SIZE STANDARDS ========== */
 :root {
   --icon-size-sm: 16px;    /* Small icons in buttons */
@@ -1948,6 +1957,7 @@
   height: 100%;
   border-radius: 12px;
   transition: width 0.5s ease;
+  width: var(--bar-width, 0%);
 }
 
 .stats-bar-new {
@@ -2135,6 +2145,7 @@
   height: 100%;
   border-radius: 4px;
   transition: width 0.3s ease;
+  width: var(--accuracy-width, 0%);
 }
 
 .stats-accuracy-high {
@@ -2305,6 +2316,7 @@
   height: 100%;
   background: linear-gradient(90deg, var(--interactive-accent), var(--interactive-accent-hover));
   transition: width 0.3s ease;
+  width: var(--progress-width, 0%);
 }
 
 .quiz-progress-text {

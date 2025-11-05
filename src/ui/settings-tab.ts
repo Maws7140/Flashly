@@ -20,10 +20,14 @@ export class FlashlySettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		containerEl.createEl('h2', { text: 'Flashly settings' });
+		new Setting(containerEl)
+			.setName('Flashly settings')
+			.setHeading();
 
 		// Inline Parser Settings
-		containerEl.createEl('h3', { text: 'Inline flashcards' });
+		new Setting(containerEl)
+			.setName('Inline flashcards')
+			.setHeading();
 
 		new Setting(containerEl)
 			.setName('Enable inline flashcards')
@@ -79,7 +83,9 @@ export class FlashlySettingTab extends PluginSettingTab {
 		}
 
 		// Header Parser Settings
-		containerEl.createEl('h3', { text: 'Header-based flashcards' });
+		new Setting(containerEl)
+			.setName('Header-based flashcards')
+			.setHeading();
 
 		new Setting(containerEl)
 			.setName('Enable header-based flashcards')
@@ -192,7 +198,9 @@ export class FlashlySettingTab extends PluginSettingTab {
 		}
 
 		// Mixed Formats
-		containerEl.createEl('h3', { text: 'Advanced' });
+		new Setting(containerEl)
+			.setName('Advanced')
+			.setHeading();
 
 		new Setting(containerEl)
 			.setName('Allow mixed formats')
@@ -205,7 +213,9 @@ export class FlashlySettingTab extends PluginSettingTab {
 				}));
 
 		// Review Sessions
-		containerEl.createEl('h3', { text: 'Review sessions' });
+		new Setting(containerEl)
+			.setName('Review sessions')
+			.setHeading();
 
 		new Setting(containerEl)
 			.setName('Scheduler algorithm')
@@ -295,7 +305,9 @@ export class FlashlySettingTab extends PluginSettingTab {
 				}));
 
 		// AI Quiz Generation
-		containerEl.createEl('h3', { text: 'Quiz generation (AI-powered)' });
+		new Setting(containerEl)
+			.setName('Quiz generation (AI-powered)')
+			.setHeading();
 
 		new Setting(containerEl)
 			.setName('Enable AI quiz generation')
@@ -326,7 +338,9 @@ export class FlashlySettingTab extends PluginSettingTab {
 
 			// OpenAI Settings
 			if (this.plugin.settings.quiz.provider === 'openai') {
-				containerEl.createEl('h4', { text: 'OpenAI configuration' });
+				new Setting(containerEl)
+					.setName('OpenAI configuration')
+					.setHeading();
 
 				new Setting(containerEl)
 					.setName('API key')
@@ -369,7 +383,9 @@ export class FlashlySettingTab extends PluginSettingTab {
 
 			// Anthropic Settings
 			if (this.plugin.settings.quiz.provider === 'anthropic') {
-				containerEl.createEl('h4', { text: 'Anthropic configuration' });
+				new Setting(containerEl)
+					.setName('Anthropic configuration')
+					.setHeading();
 
 				new Setting(containerEl)
 					.setName('API key')
@@ -413,7 +429,9 @@ export class FlashlySettingTab extends PluginSettingTab {
 
 			// Gemini Settings
 			if (this.plugin.settings.quiz.provider === 'gemini') {
-				containerEl.createEl('h4', { text: 'Google Gemini configuration' });
+				new Setting(containerEl)
+					.setName('Google Gemini configuration')
+					.setHeading();
 
 				new Setting(containerEl)
 					.setName('API key')
@@ -457,7 +475,9 @@ export class FlashlySettingTab extends PluginSettingTab {
 
 			// Custom API Settings
 			if (this.plugin.settings.quiz.provider === 'custom') {
-				containerEl.createEl('h4', { text: 'Custom API configuration' });
+				new Setting(containerEl)
+					.setName('Custom API configuration')
+					.setHeading();
 
 				new Setting(containerEl)
 					.setName('API key')
@@ -536,7 +556,9 @@ export class FlashlySettingTab extends PluginSettingTab {
 					});
 				});
 		}			// Advanced AI Settings
-			containerEl.createEl('h4', { text: 'Advanced AI settings' });
+			new Setting(containerEl)
+				.setName('Advanced AI settings')
+				.setHeading();
 
 			new Setting(containerEl)
 				.setName('Temperature')
@@ -575,12 +597,13 @@ export class FlashlySettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					});
 					text.inputEl.rows = 4;
-					text.inputEl.style.width = '100%';
 				});
 		}
 
 		// Tutorial Settings
-		containerEl.createEl('h3', { text: 'Tutorial' });
+		new Setting(containerEl)
+			.setName('Tutorial')
+			.setHeading();
 
 		new Setting(containerEl)
 			.setName('Replay tutorial')

@@ -131,12 +131,12 @@ export class ReviewModal extends Modal {
 		// When switching to a new card, instantly reset to front without animation
 		if (isNewCard && !showingAnswer) {
 			// Disable transitions temporarily
-			this.cardInner.style.transition = 'none';
+			this.cardInner.addClass('no-transition');
 			this.cardInner.removeClass('flipped');
 			// Force browser to apply the change
 			void this.cardInner.offsetHeight;
 			// Re-enable transitions
-			this.cardInner.style.transition = '';
+			this.cardInner.removeClass('no-transition');
 			this.currentCardId = current.card.id;
 		} else {
 			// Normal flip animation for same card

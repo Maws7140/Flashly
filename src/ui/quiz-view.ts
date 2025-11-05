@@ -131,7 +131,7 @@ export class QuizView extends ItemView {
 		const progressBar = progress.createDiv({ cls: 'quiz-progress-bar' });
 		const progressFill = progressBar.createDiv({ cls: 'quiz-progress-fill' });
 		const percentage = ((this.currentQuestionIndex + 1) / this.currentQuiz.totalQuestions) * 100;
-		progressFill.style.width = `${percentage}%`;
+		progressFill.setCssProps({ '--progress-width': `${percentage}%` });
 
 		const progressText = progress.createDiv({ cls: 'quiz-progress-text' });
 		progressText.setText(`Question ${this.currentQuestionIndex + 1} of ${this.currentQuiz.totalQuestions}`);

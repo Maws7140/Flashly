@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, Notice, TFile, setIcon, MarkdownRenderer, Component } from 'obsidian';
+import { ItemView, WorkspaceLeaf, Notice, TFile, setIcon, MarkdownRenderer, Component, Modal, App } from 'obsidian';
 import { BrowserViewModel, BrowserViewMode, DeckInfo } from '../viewmodels/browser-viewmodel';
 import { FlashlyCard } from '../models/card';
 import type FlashlyPlugin from '../../main';
@@ -618,14 +618,13 @@ export class FlashcardBrowserView extends ItemView {
     }
 
     const leaf = this.app.workspace.getLeaf(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await leaf.openFile(file);
 
     // Navigate to line
     const view = this.app.workspace.getActiveViewOfType(ItemView);
     if (view && 'editor' in view) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const editor = (view as any).editor;
+      // Editor property is not typed in ItemView, using type assertion for compatibility
+      const editor = (view as { editor?: { setCursor: (pos: { line: number; ch: number }) => void; scrollIntoView: (range: { from: { line: number; ch: number }; to: { line: number; ch: number } }) => void } }).editor;
       if (editor) {
         editor.setCursor({ line: card.source.line - 1, ch: 0 });
         editor.scrollIntoView({ from: { line: card.source.line - 1, ch: 0 }, to: { line: card.source.line - 1, ch: 0 } });
@@ -637,14 +636,13 @@ export class FlashcardBrowserView extends ItemView {
    * Delete a card with confirmation
    */
   private deleteCard(card: FlashlyCard): void {
-    const confirmed = confirm(`Delete flashcard:\n\n${card.front}\n\nThis cannot be undone.`);
-    if (!confirmed) return;
-
-    this.plugin.storage.deleteCard(card.id);
-    void this.plugin.storage.save();
-
-    new Notice('Card deleted');
-    this.refreshCards();
+    const modal = new ConfirmDeleteCardModal(this.app, card, () => {
+      this.plugin.storage.deleteCard(card.id);
+      void this.plugin.storage.save();
+      new Notice('Card deleted');
+      this.refreshCards();
+    });
+    modal.open();
   }
 
   private async startDeckReview(deckName: string) {
@@ -787,6 +785,53 @@ export class FlashcardBrowserView extends ItemView {
         break;
       }
     }
+  }
+}
+
+/**
+ * Confirmation modal for deleting cards
+ */
+class ConfirmDeleteCardModal extends Modal {
+  card: FlashlyCard;
+  onConfirm: () => void;
+
+  constructor(app: App, card: FlashlyCard, onConfirm: () => void) {
+    super(app);
+    this.card = card;
+    this.onConfirm = onConfirm;
+  }
+
+  onOpen(): void {
+    const { contentEl } = this;
+    contentEl.addClass('flashly-confirm-delete-modal');
+
+    contentEl.createEl('h2', { text: 'Delete flashcard?' });
+    contentEl.createEl('p', {
+      text: `Are you sure you want to delete this flashcard? This cannot be undone.`
+    });
+
+    const cardPreview = contentEl.createDiv({ cls: 'card-preview' });
+    cardPreview.createEl('strong', { text: 'Front: ' });
+    cardPreview.createSpan({ text: this.card.front });
+
+    const buttonContainer = contentEl.createDiv({ cls: 'modal-button-container' });
+
+    const cancelBtn = buttonContainer.createEl('button', { text: 'Cancel' });
+    cancelBtn.addEventListener('click', () => this.close());
+
+    const deleteBtn = buttonContainer.createEl('button', {
+      text: 'Delete',
+      cls: 'mod-warning'
+    });
+    deleteBtn.addEventListener('click', () => {
+      this.onConfirm();
+      this.close();
+    });
+  }
+
+  onClose(): void {
+    const { contentEl } = this;
+    contentEl.empty();
   }
 }
 

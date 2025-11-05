@@ -260,7 +260,7 @@ export class StatisticsView extends ItemView {
 			const barContainer = row.createDiv({ cls: 'stats-distribution-bar-container' });
 			const bar = barContainer.createDiv({ cls: 'stats-distribution-bar' });
 			bar.addClass(`stats-bar-${state}`);
-			bar.style.width = `${percentage}%`;
+			bar.setCssProps({ '--bar-width': `${percentage}%` });
 
 			row.createSpan({ text: `${percentage.toFixed(1)}%`, cls: 'stats-distribution-percentage' });
 		});
@@ -407,7 +407,7 @@ export class StatisticsView extends ItemView {
 			const accuracy = stats.total > 0 ? (stats.correct / stats.total) * 100 : 0;
 			const accuracyBar = typeCard.createDiv({ cls: 'stats-type-accuracy-bar' });
 			const accuracyFill = accuracyBar.createDiv({ cls: 'stats-type-accuracy-fill' });
-			accuracyFill.style.width = `${accuracy}%`;
+			accuracyFill.setCssProps({ '--accuracy-width': `${accuracy}%` });
 
 			if (accuracy >= 80) {
 				accuracyFill.addClass('stats-accuracy-high');
