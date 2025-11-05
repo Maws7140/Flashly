@@ -111,7 +111,7 @@ export class QuizView extends ItemView {
 		setIcon(emptyIcon, 'file-question');
 		emptyState.createEl('h3', { text: 'No quiz loaded', cls: 'quiz-empty-title' });
 		emptyState.createEl('p', {
-			text: 'Use the "Generate Quiz" command to create a new quiz.',
+			text: 'Use the "Generate quiz" command to create a new quiz.',
 			cls: 'quiz-empty-message'
 		});
 	}

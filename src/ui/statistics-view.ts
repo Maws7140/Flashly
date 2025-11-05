@@ -314,7 +314,7 @@ export class StatisticsView extends ItemView {
 
 		if (completedQuizzes.length === 0) {
 			section.createDiv({
-				text: 'No quizzes completed yet. Use "Generate Quiz" to create your first quiz!',
+				text: 'No quizzes completed yet. Use "Generate quiz" to create your first quiz!',
 				cls: 'stats-empty-message'
 			});
 			return;

@@ -146,7 +146,7 @@ export class FlashcardBrowserView extends ItemView {
     // Quiz buttons
     const quizBtn = headerActions.createEl('button', {
       cls: 'deck-header-btn',
-      attr: { 'aria-label': 'Generate Quiz' },
+      attr: { 'aria-label': 'Generate quiz' },
     });
     const quizIcon = quizBtn.createSpan({ cls: 'deck-btn-icon' });
     setIcon(quizIcon, 'help-circle');
@@ -157,7 +157,7 @@ export class FlashcardBrowserView extends ItemView {
 
     const historyBtn = headerActions.createEl('button', {
       cls: 'deck-header-btn',
-      attr: { 'aria-label': 'View Quiz History' },
+      attr: { 'aria-label': 'View quiz history' },
     });
     const historyIcon = historyBtn.createSpan({ cls: 'deck-btn-icon' });
     setIcon(historyIcon, 'history');
@@ -172,7 +172,7 @@ export class FlashcardBrowserView extends ItemView {
 
     const statsBtn = headerActions.createEl('button', {
       cls: 'deck-header-btn',
-      attr: { 'aria-label': 'View Statistics' },
+      attr: { 'aria-label': 'View statistics' },
     });
     const statsIcon = statsBtn.createSpan({ cls: 'deck-btn-icon' });
     setIcon(statsIcon, 'bar-chart-2');
@@ -388,7 +388,7 @@ export class FlashcardBrowserView extends ItemView {
       cls: 'empty-message',
       text: this.deckSearchQuery
         ? 'No decks match your search. Try a different query.'
-        : 'Create flashcards in your notes and run "Scan Vault for Flashcards".',
+        : 'Create flashcards in your notes and run "Scan vault for flashcards".',
     });
   }
 
