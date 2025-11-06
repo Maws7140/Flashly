@@ -105,7 +105,7 @@ export function createQuiz(
 	generationMethod: QuizGenerationMethod
 ): Quiz {
 	return {
-		id: `quiz-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+		id: `quiz-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
 		title,
 		created: new Date(),
 		generationMethod,

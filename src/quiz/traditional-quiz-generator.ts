@@ -139,7 +139,7 @@ export class TraditionalQuizGenerator {
 		const correctIndex = shuffledOptions.indexOf(card.back.trim());
 
 		return {
-			id: `q-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+			id: `q-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
 			type: 'multiple-choice',
 			prompt: card.front,
 			options: shuffledOptions,
@@ -164,7 +164,7 @@ export class TraditionalQuizGenerator {
 
 			// Create a fill-blank using the front as prompt and back as answer
 			return {
-				id: `q-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+				id: `q-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
 				type: 'fill-blank',
 				prompt: card.front,
 				correctAnswer: card.back.trim(),
@@ -178,7 +178,7 @@ export class TraditionalQuizGenerator {
 		const prompt = card.front.replace(firstCloze, '_____');
 
 		return {
-			id: `q-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+			id: `q-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
 			type: 'fill-blank',
 			prompt,
 			correctAnswer: answer.trim(),
@@ -226,7 +226,7 @@ export class TraditionalQuizGenerator {
 		}
 
 		return {
-			id: `q-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+			id: `q-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
 			type: 'true-false',
 			prompt,
 			options: ['True', 'False'],

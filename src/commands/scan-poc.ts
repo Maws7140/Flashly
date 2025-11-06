@@ -39,7 +39,7 @@ export function registerScanPoCCommand(app: App, addCommand: (command: Command) 
 			// PoC: display the first card in a notice to avoid full review dependency
 			const firstCard = cards[0];
 			new Notice(`First card:\n${firstCard.front} -> ${firstCard.back}`);
-			console.log('Parsed cards:', cards);
+			console.debug('Parsed cards:', cards);
 		}
 	});
 }

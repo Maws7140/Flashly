@@ -15,13 +15,9 @@ interface DeckStats {
 	averageRetention: number;
 }
 
-interface DailyReview {
-	date: string;
-	count: number;
-}
-
 export class StatisticsView extends ItemView {
 	plugin: FlashlyPlugin;
+	private renderQueue: Promise<void> = Promise.resolve();
 
 	constructor(leaf: WorkspaceLeaf, plugin: FlashlyPlugin) {
 		super(leaf);
@@ -41,14 +37,14 @@ export class StatisticsView extends ItemView {
 	}
 
 	async onOpen(): Promise<void> {
-		this.render();
+		this.queueRender();
 	}
 
 	async onClose(): Promise<void> {
 		this.containerEl.empty();
 	}
 
-	private render(): void {
+	private renderInternal(): void {
 		const container = this.containerEl;
 		container.empty();
 		container.addClass('flashly-statistics-view');
@@ -63,7 +59,7 @@ export class StatisticsView extends ItemView {
 		attr: { 'aria-label': 'Refresh statistics' }
 	});
 	setIcon(refreshBtn, 'refresh-cw');
-	refreshBtn.addEventListener('click', () => this.render());		// Get all cards
+	refreshBtn.addEventListener('click', () => this.queueRender());		// Get all cards
 		const cards = this.plugin.storage.getAllCards();
 
 		// Overview Cards
@@ -471,5 +467,13 @@ export class StatisticsView extends ItemView {
 		if (diffDays < 7) return `${diffDays}d ago`;
 
 		return date.toLocaleDateString();
+	}
+
+	private queueRender(): void {
+		this.renderQueue = this.renderQueue
+			.then(() => this.renderInternal())
+			.catch((error) => {
+				console.error('Flashly: failed to render statistics view', error);
+			});
 	}
 }

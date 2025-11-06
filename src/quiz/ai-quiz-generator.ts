@@ -166,7 +166,7 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 			const parsed = JSON.parse(content) as ParsedAIResponse;
 
 			// Add IDs to questions
-			const questions: QuizQuestion[] = parsed.questions.map((q) => ({
+			const questions: QuizQuestion[] = parsed.questions.map((q: ParsedAIQuestion) => ({
 				id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
 				type: q.type,
 				prompt: q.prompt,
@@ -229,7 +229,7 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 			const parsed = JSON.parse(content) as ParsedAIResponse;
 
 			// Add IDs to questions
-			const questions: QuizQuestion[] = parsed.questions.map((q) => ({
+			const questions: QuizQuestion[] = parsed.questions.map((q: ParsedAIQuestion) => ({
 				id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
 				type: q.type,
 				prompt: q.prompt,
@@ -340,7 +340,7 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 			}
 
 			// Add IDs to questions
-			const questions: QuizQuestion[] = parsed.questions.map((q) => ({
+			const questions: QuizQuestion[] = parsed.questions.map((q: ParsedAIQuestion) => ({
 				id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
 				type: q.type,
 				prompt: q.prompt,
@@ -419,7 +419,7 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 			const parsed = JSON.parse(content) as ParsedAIResponse;
 
 			// Add IDs to questions
-			const questions: QuizQuestion[] = parsed.questions.map((q) => ({
+			const questions: QuizQuestion[] = parsed.questions.map((q: ParsedAIQuestion) => ({
 				id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
 				type: q.type,
 				prompt: q.prompt,

@@ -13,6 +13,7 @@ export class QuizHistoryView extends ItemView {
 	plugin: FlashlyPlugin;
 	private sortBy: 'date' | 'score' | 'title' = 'date';
 	private filterMethod: 'all' | 'traditional' | 'ai' = 'all';
+	private renderQueue: Promise<void> = Promise.resolve();
 
 	constructor(leaf: WorkspaceLeaf, plugin: FlashlyPlugin) {
 		super(leaf);
@@ -32,14 +33,14 @@ export class QuizHistoryView extends ItemView {
 	}
 
 	async onOpen(): Promise<void> {
-		this.render();
+		this.queueRender();
 	}
 
 	async onClose(): Promise<void> {
 		this.containerEl.empty();
 	}
 
-	private render(): void {
+	private renderInternal(): void {
 		const container = this.containerEl;
 		container.empty();
 		container.addClass('flashly-quiz-history-view');
@@ -53,7 +54,7 @@ export class QuizHistoryView extends ItemView {
 			attr: { 'aria-label': 'Refresh quiz history' }
 		});
 		setIcon(refreshBtn, 'refresh-cw');
-		refreshBtn.addEventListener('click', () => this.render());
+		refreshBtn.addEventListener('click', () => this.queueRender());
 
 		// Get all quizzes
 		const allQuizzes = this.plugin.quizStorage.getAllQuizzes();
@@ -137,7 +138,7 @@ export class QuizHistoryView extends ItemView {
 
 		sortSelect.addEventListener('change', (e) => {
 			this.sortBy = (e.target as HTMLSelectElement).value as 'date' | 'score' | 'title';
-			this.render();
+			this.queueRender();
 		});
 
 		// Filter dropdown
@@ -163,7 +164,7 @@ export class QuizHistoryView extends ItemView {
 
 		filterSelect.addEventListener('change', (e) => {
 			this.filterMethod = (e.target as HTMLSelectElement).value as 'all' | 'traditional' | 'ai';
-			this.render();
+			this.queueRender();
 		});
 	}
 
@@ -478,8 +479,16 @@ export class QuizHistoryView extends ItemView {
 		new ConfirmDeleteModal(this.app, quiz, async () => {
 			await this.plugin.quizStorage.deleteQuiz(quiz.id);
 			new Notice('Quiz deleted');
-			this.render();
+			this.queueRender();
 		}).open();
+	}
+
+	private queueRender(): void {
+		this.renderQueue = this.renderQueue
+			.then(() => this.renderInternal())
+			.catch((error) => {
+				console.error('Flashly: failed to render quiz history view', error);
+			});
 	}
 }
 

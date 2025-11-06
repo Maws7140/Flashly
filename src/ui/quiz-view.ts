@@ -416,8 +416,8 @@ export class QuizView extends ItemView {
 		setIcon(newQuizIcon, 'refresh-cw');
 		newQuizBtn.prepend(newQuizIcon);
 		newQuizBtn.addEventListener('click', () => {
-			this.currentQuiz = null;
-			this.render();
+			// Trigger the generate-quiz command
+			(this.app as any).commands.executeCommandById('flashly:generate-quiz');
 		});
 
 		const closeBtn = actions.createEl('button', {

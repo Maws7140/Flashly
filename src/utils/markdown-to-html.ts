@@ -98,7 +98,7 @@ export class MarkdownToHTMLConverter {
       const line = lines[i];
       
       // Unordered list (-, *, +)
-      const ulMatch = line.match(/^[\-\*\+]\s+(.+)$/);
+      const ulMatch = line.match(/^[-*+]\s+(.+)$/);
       // Ordered list (1., 2., etc.)
       const olMatch = line.match(/^\d+\.\s+(.+)$/);
 
@@ -281,7 +281,7 @@ export class MarkdownToHTMLConverter {
     plain = plain.replace(/^#{1,6}\s+/gm, '');
     
     // Remove lists
-    plain = plain.replace(/^[\-\*\+]\s+/gm, '');
+    plain = plain.replace(/^[-*+]\s+/gm, '');
     plain = plain.replace(/^\d+\.\s+/gm, '');
     
     // Remove blockquotes

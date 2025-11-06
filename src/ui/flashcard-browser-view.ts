@@ -51,7 +51,7 @@ export class FlashcardBrowserView extends ItemView {
     // Refresh when view becomes visible after being hidden
     this.registerEvent(
       this.app.workspace.on('active-leaf-change', (leaf) => {
-        if (leaf?.view === this) {
+        if (leaf && leaf.view instanceof FlashcardBrowserView && leaf.view === this) {
           this.refreshCards();
         }
       })
@@ -72,8 +72,9 @@ export class FlashcardBrowserView extends ItemView {
     this.containerEl.setAttribute('tabindex', '-1');
   }
 
-  onClose(): void {
+  async onClose(): Promise<void> {
     // Unload component to clean up
+    await Promise.resolve(); // Satisfy async requirement
     this.component.unload();
   }
 
@@ -668,24 +669,26 @@ export class FlashcardBrowserView extends ItemView {
       return; // Prevent multiple simultaneous animations
     }
 
-    this.isAnimating = true;
+    const cardInner = this.containerEl.querySelector('.card-inner') as HTMLElement | null;
 
-    // Find card-inner element
-    const cardInner = this.containerEl.querySelector('.card-inner') as HTMLElement;
-    if (cardInner) {
-      // Add will-change for GPU acceleration
-      cardInner.addClass('animating');
+    if (!cardInner) {
+      // Fallback to full render if the card element is missing
+      this.viewModel.flipCard();
+      void this.render();
+      return;
     }
 
-    // Perform the flip
-    this.viewModel.flipCard();
-    void this.render();
+    this.isAnimating = true;
+    cardInner.addClass('animating');
 
-    // Remove will-change after animation completes to free GPU memory
+    this.viewModel.flipCard();
+
+    const { showingAnswer } = this.viewModel.getViewState();
+    cardInner.toggleClass('flipped', showingAnswer);
+
+    // Remove animation hint once transition completes
     setTimeout(() => {
-      if (cardInner) {
-        cardInner.removeClass('animating');
-      }
+      cardInner.removeClass('animating');
       this.isAnimating = false;
     }, 400); // Match CSS transition duration
   }

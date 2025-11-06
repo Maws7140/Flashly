@@ -82,7 +82,7 @@ class GenerateQuizModal extends Modal {
 			});
 
 		// Deck filter
-		const deckFilterSetting = new Setting(contentEl)
+		const _deckFilterSetting = new Setting(contentEl)
 			.setName('Filter by decks')
 			.setDesc('Select which decks to include (leave all unchecked for all decks)');
 
@@ -157,7 +157,7 @@ class GenerateQuizModal extends Modal {
 
 				// Count cards in this deck
 				const cardCount = allCards.filter(c => c.deck === deck).length;
-				const countSpan = deckItem.createSpan({
+				const _countSpan = deckItem.createSpan({
 					text: ` (${cardCount} card${cardCount !== 1 ? 's' : ''})`,
 					cls: 'quiz-deck-count'
 				});

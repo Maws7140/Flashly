@@ -18,8 +18,8 @@ export class Vault {
     return [];
   }
   
-  async read(file: TFile): Promise<string> {
-    return '';
+  read(file: TFile): Promise<string> {
+    return Promise.resolve('');
   }
   
   async modify(file: TFile, data: string): Promise<void> {
@@ -32,11 +32,11 @@ export class Workspace {
     return null;
   }
   
-  getActiveViewOfType(type: any): any {
+  getActiveViewOfType<T>(type: new (...args: unknown[]) => T): T | null {
     return null;
   }
   
-  on(event: string, callback: (...args: any[]) => void): any {
+  on(event: string, callback: (...args: unknown[]) => void): { unsubscribe: () => void } {
     return { unsubscribe: () => {} };
   }
 }
@@ -46,7 +46,7 @@ export class MetadataCache {
     return null;
   }
   
-  on(event: string, callback: (...args: any[]) => void): any {
+  on(event: string, callback: (...args: unknown[]) => void): { unsubscribe: () => void } {
     return { unsubscribe: () => {} };
   }
 }
@@ -65,7 +65,7 @@ export class TFile {
 
 export interface CachedMetadata {
   frontmatter?: {
-    [key: string]: any;
+    [key: string]: unknown;
   };
   headings?: HeadingCache[];
   tags?: TagCache[];
@@ -90,37 +90,40 @@ export interface TagCache {
 
 export class Plugin {
   app: App = new App();
-  manifest: any = {};
+  manifest: Record<string, unknown> = {};
   
-  async loadData(): Promise<any> {
-    return {};
+  loadData(): Promise<Record<string, unknown>> {
+    return Promise.resolve({});
   }
   
-  async saveData(data: any): Promise<void> {
+  async saveData(data: Record<string, unknown>): Promise<void> {
     // Mock implementation
   }
   
-  addCommand(command: any): void {
+  addCommand(command: { id: string; name: string; callback: () => void }): void {
     // Mock implementation
   }
   
-  addRibbonIcon(icon: string, title: string, callback: (evt: MouseEvent) => void): any {
+  addRibbonIcon(icon: string, title: string, callback: (evt: MouseEvent) => void): { addClass: (cls: string) => void } {
     return {
       addClass: (cls: string) => {},
     };
   }
   
-  addStatusBarItem(): any {
+  addStatusBarItem(): { setText: (text: string) => void; addClass: (cls: string) => void; removeClass: (cls: string) => void; onclick: (() => void) | null } {
     return {
       setText: (text: string) => {},
+      addClass: (cls: string) => {},
+      removeClass: (cls: string) => {},
+      onclick: null
     };
   }
   
-  addSettingTab(tab: any): void {
+  addSettingTab(tab: { display: () => void }): void {
     // Mock implementation
   }
   
-  registerDomEvent(el: any, event: string, callback: any): void {
+  registerDomEvent(el: HTMLElement, event: string, callback: (evt: Event) => void): void {
     // Mock implementation
   }
   

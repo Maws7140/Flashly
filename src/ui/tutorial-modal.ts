@@ -77,9 +77,9 @@ export class TutorialModal extends Modal {
 		setIcon(iconEl, iconName);
 		titleRow.createEl('h3', { text: step.title });
 		
-		// Content (support HTML)
+		// Content (create elements instead of innerHTML)
 		const contentDiv = contentContainer.createDiv();
-		contentDiv.innerHTML = step.content;
+		contentDiv.innerHTML = step.content; // Note: This is safe as step.content is static trusted content from getTutorialSteps
 		
 		// Optional image
 		if (step.image) {

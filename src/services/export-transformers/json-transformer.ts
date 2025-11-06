@@ -23,7 +23,7 @@ export interface JSONCard {
     difficulty?: number;
     stability?: number;
     scheduled_days?: number;
-    elapsed_days?: number;
+    // elapsed_days?: number; // Deprecated in FSRS v6.0.0
     reps?: number;
     lapses?: number;
     last_review?: string;
@@ -95,7 +95,7 @@ export class JSONTransformer implements ExportTransformer<JSONExportFormat> {
         difficulty: card.fsrsCard.difficulty,
         stability: card.fsrsCard.stability,
         scheduled_days: card.fsrsCard.scheduled_days,
-        elapsed_days: card.fsrsCard.elapsed_days,
+        // elapsed_days: card.fsrsCard.elapsed_days, // Deprecated in FSRS v6.0.0
         reps: card.fsrsCard.reps,
         lapses: card.fsrsCard.lapses,
         last_review: card.fsrsCard.last_review?.toISOString()

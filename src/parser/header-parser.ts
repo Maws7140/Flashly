@@ -52,7 +52,8 @@ export class HeaderParser {
 			const fmTags = Array.isArray(metadata.frontmatter.tags)
 				? metadata.frontmatter.tags
 				: [metadata.frontmatter.tags];
-			allTags.push(...fmTags);
+			// Ensure all tags are strings (frontmatter can contain non-string values)
+			allTags.push(...fmTags.filter(t => t != null).map(t => String(t)));
 		}
 
 		// Collect inline tags (these include the # prefix, e.g., "#flashcards")

@@ -38,7 +38,7 @@ export class QuizStorageService {
 		const data = await this.plugin.loadData() as Record<string, unknown> | null;
 
 		if (!data || !data.quizStorage) {
-			console.log('Quiz storage: No existing data found, initializing empty storage');
+			console.debug('Quiz storage: No existing data found, initializing empty storage');
 			this.quizzes = new Map();
 			this.quizHistory = [];
 			return;
@@ -52,7 +52,7 @@ export class QuizStorageService {
 		}
 
 		this.quizHistory = quizStorage.quizHistory || [];
-		console.log('Quiz storage loaded:', this.quizzes.size, 'quizzes');
+		console.debug('Quiz storage loaded:', this.quizzes.size, 'quizzes');
 	}
 
 	/**
@@ -74,7 +74,7 @@ export class QuizStorageService {
 
 			existingData.quizStorage = quizStorage;
 			await this.plugin.saveData(existingData);
-			console.log('Quiz storage saved successfully:', this.quizzes.size, 'quizzes');
+			console.debug('Quiz storage saved successfully:', this.quizzes.size, 'quizzes');
 		} catch (error) {
 			console.error('Failed to save quiz storage:', error);
 			throw error;

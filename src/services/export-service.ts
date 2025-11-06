@@ -145,7 +145,7 @@ export class ExportService {
 		};
 
 		// Generate CSV content
-		const csvContent = exporter.export(cards, csvOptions);
+		const csvContent = await exporter.export(cards, csvOptions);
 
 		// Determine filename
 		const timestamp = new Date().toISOString().replace(/:/g, '-').split('.')[0];

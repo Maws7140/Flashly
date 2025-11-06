@@ -20,9 +20,8 @@ export class FlashlySettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		new Setting(containerEl)
-			.setName('Flashly settings')
-			.setHeading();
+		// Removed redundant heading per Obsidian guidelines
+		// Settings tab title is already shown by Obsidian
 
 		// Inline Parser Settings
 		new Setting(containerEl)
