@@ -95,7 +95,7 @@ export class HeaderParser {
 							const fmTags = Array.isArray(metadata.frontmatter.tags)
 								? metadata.frontmatter.tags
 								: [metadata.frontmatter.tags];
-							allTags.push(...fmTags);
+							allTags.push(...(fmTags as string[]));
 						}
 
 						// Collect inline tags (strip # prefix)
@@ -271,7 +271,7 @@ export class HeaderParser {
 			const fmTags = Array.isArray(metadata.frontmatter.tags)
 				? metadata.frontmatter.tags
 				: [metadata.frontmatter.tags];
-			tags.push(...fmTags);
+			tags.push(...(fmTags as string[]));
 		}
 
 		// Inline tags (from metadata cache)

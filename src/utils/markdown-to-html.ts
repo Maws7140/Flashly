@@ -61,7 +61,7 @@ export class MarkdownToHTMLConverter {
 
   private protectCodeBlocks(text: string): string {
     // Match ``` code blocks and replace with placeholders
-    return text.replace(/```(\w*)\r?\n([\s\S]*?)```/g, (match, lang, code) => {
+    return text.replace(/```(\w*)\r?\n([\s\S]*?)```/g, (match, lang: string, code) => {
       const placeholder = `<<<CODEBLOCK${Date.now()}N${this.codeBlockPlaceholders.size}>>>`;
       const html = `<pre><code class="language-${lang}">${this.escapeHTML(code.trim())}</code></pre>`;
       this.codeBlockPlaceholders.set(placeholder, html);
