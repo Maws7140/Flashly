@@ -627,7 +627,7 @@ export class FlashcardBrowserView extends ItemView {
       cls: 'action-btn open-btn',
       text: 'Open note',
     });
-    openBtn.addEventListener('click', () => this.openCardNote(card));
+    openBtn.addEventListener('click', () => void this.openCardNote(card));
 
     // Delete button
     const deleteBtn = actions.createEl('button', {
@@ -834,7 +834,7 @@ export class FlashcardBrowserView extends ItemView {
         evt.preventDefault();
         const card = this.viewModel.getCurrentCard();
         if (card) {
-          this.openCardNote(card);
+          void this.openCardNote(card);
         }
         break;
       }

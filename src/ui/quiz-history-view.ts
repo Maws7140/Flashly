@@ -249,25 +249,19 @@ export class QuizHistoryView extends ItemView {
 			// Actions section
 			const actions = quizCard.createDiv({ cls: 'quiz-card-actions' });
 
-			const viewBtn = actions.createEl('button', {
-				text: 'View',
-				cls: 'quiz-card-btn quiz-card-btn-primary'
-			});
-			viewBtn.addEventListener('click', () => this.viewQuiz(quiz));
-
-			const retakeBtn = actions.createEl('button', {
-				text: 'Retake',
-				cls: 'quiz-card-btn'
-			});
-			retakeBtn.addEventListener('click', () => this.retakeQuiz(quiz));
-
-			const exportBtn = actions.createEl('button', {
-				text: 'Export',
-				cls: 'quiz-card-btn'
-			});
-			exportBtn.addEventListener('click', () => this.exportQuiz(quiz));
-
-			const deleteBtn = actions.createEl('button', {
+		const viewBtn = actions.createEl('button', {
+			text: 'View',
+			cls: 'quiz-card-btn quiz-card-btn-primary'
+		});
+		viewBtn.addEventListener('click', () => void this.viewQuiz(quiz));		const retakeBtn = actions.createEl('button', {
+			text: 'Retake',
+			cls: 'quiz-card-btn'
+		});
+		retakeBtn.addEventListener('click', () => void this.retakeQuiz(quiz));		const exportBtn = actions.createEl('button', {
+			text: 'Export',
+			cls: 'quiz-card-btn'
+		});
+		exportBtn.addEventListener('click', () => void this.exportQuiz(quiz));			const deleteBtn = actions.createEl('button', {
 				text: 'Delete',
 				cls: 'quiz-card-btn quiz-card-btn-danger'
 			});

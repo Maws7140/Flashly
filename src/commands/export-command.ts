@@ -24,7 +24,7 @@ export class ExportCommand {
 	}
 
 	getCallback() {
-		return async () => {
+		return () => {
 			// Check if there are any cards to export
 			const decks = this.exportService.getAvailableDecks();
 			

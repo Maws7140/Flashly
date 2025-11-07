@@ -176,7 +176,7 @@ export class QuizView extends ItemView {
 			const prevBtn = nav.createEl('button', { text: '← Previous', cls: 'quiz-nav-btn' });
 			prevBtn.addEventListener('click', () => {
 				this.currentQuestionIndex--;
-				this.render();
+				void this.render();
 			});
 		}
 
@@ -190,9 +190,9 @@ export class QuizView extends ItemView {
 
 			if (this.currentQuestionIndex < this.currentQuiz.totalQuestions - 1) {
 				this.currentQuestionIndex++;
-				this.render();
+				void this.render();
 			} else {
-				this.finishQuiz();
+				void this.finishQuiz();
 			}
 		});
 
@@ -244,7 +244,7 @@ export class QuizView extends ItemView {
 
 			optionBtn.addEventListener('click', () => {
 				question.userAnswer = index;
-				this.render();
+				void this.render();
 			});
 		}
 	}
@@ -300,7 +300,7 @@ export class QuizView extends ItemView {
 
 			optionBtn.addEventListener('click', () => {
 				question.userAnswer = answerValue;
-				this.render();
+				void this.render();
 			});
 		}
 	}
@@ -338,7 +338,7 @@ export class QuizView extends ItemView {
 		}
 
 		// Render results
-		this.render();
+		void this.render();
 	}
 
 	private renderResults(container: HTMLElement): void {
@@ -481,9 +481,9 @@ export class QuizView extends ItemView {
 			evt.preventDefault();
 			if (this.currentQuestionIndex < this.currentQuiz.totalQuestions - 1) {
 				this.currentQuestionIndex++;
-				this.render();
+				void this.render();
 			} else {
-				this.finishQuiz();
+				void this.finishQuiz();
 			}
 			return;
 		}
@@ -493,7 +493,7 @@ export class QuizView extends ItemView {
 			evt.preventDefault();
 			if (this.currentQuestionIndex > 0) {
 				this.currentQuestionIndex--;
-				this.render();
+				void this.render();
 			}
 			return;
 		}
@@ -503,7 +503,7 @@ export class QuizView extends ItemView {
 			evt.preventDefault();
 			if (this.currentQuestionIndex < this.currentQuiz.totalQuestions - 1) {
 				this.currentQuestionIndex++;
-				this.render();
+				void this.render();
 			}
 			return;
 		}
@@ -514,7 +514,7 @@ export class QuizView extends ItemView {
 			if (num >= 1 && num <= question.options.length) {
 				evt.preventDefault();
 				question.userAnswer = num - 1;
-				this.render();
+				void this.render();
 				return;
 			}
 		}
@@ -524,13 +524,13 @@ export class QuizView extends ItemView {
 			if (evt.key.toLowerCase() === 't') {
 				evt.preventDefault();
 				question.userAnswer = 'true';
-				this.render();
+				void this.render();
 				return;
 			}
 			if (evt.key.toLowerCase() === 'f') {
 				evt.preventDefault();
 				question.userAnswer = 'false';
-				this.render();
+				void this.render();
 				return;
 			}
 		}
