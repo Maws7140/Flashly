@@ -480,10 +480,12 @@ export class QuizHistoryView extends ItemView {
 	}
 
 	private confirmDelete(quiz: Quiz): void {
-		new ConfirmDeleteModal(this.app, quiz, async () => {
-			await this.plugin.quizStorage.deleteQuiz(quiz.id);
-			new Notice('Quiz deleted');
-			this.queueRender();
+		new ConfirmDeleteModal(this.app, quiz, () => {
+			void (async () => {
+				await this.plugin.quizStorage.deleteQuiz(quiz.id);
+				new Notice('Quiz deleted');
+				this.queueRender();
+			})();
 		}).open();
 	}
 

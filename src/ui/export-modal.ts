@@ -127,7 +127,7 @@ export class ExportModal extends Modal {
 			text: 'Export',
 			cls: 'mod-cta'
 		});
-		exportBtn.onclick = () => this.export();
+		exportBtn.onclick = () => void this.export();
 		
 		// Cancel button
 		const cancelBtn = buttonRow.createEl('button', { text: 'Cancel' });
