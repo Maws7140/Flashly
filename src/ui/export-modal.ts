@@ -55,12 +55,12 @@ export class ExportModal extends Modal {
 		
 		selectAllBtn.onclick = () => {
 			this.selectedDecks = [...decks];
-			toggles.forEach(t => t.setValue(true));
+			toggles.forEach(t => { void t.setValue(true); });
 		};
 		
 		deselectAllBtn.onclick = () => {
 			this.selectedDecks = [];
-			toggles.forEach(t => t.setValue(false));
+			toggles.forEach(t => { void t.setValue(false); });
 		};
 
 		// Deck checkboxes
