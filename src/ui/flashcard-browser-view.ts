@@ -249,17 +249,28 @@ export class FlashcardBrowserView extends ItemView {
     searchInput.addEventListener('input', (evt: Event) => {
       this.deckSearchQuery = (evt.target as HTMLInputElement).value;
       this.shouldFocusSearch = true;
-      
+
       // Clear existing timeout
       if (this.searchDebounceTimeout !== null) {
         window.clearTimeout(this.searchDebounceTimeout);
       }
-      
+
       // Debounce render to avoid losing focus while typing
       this.searchDebounceTimeout = window.setTimeout(() => {
         void this.render();
         this.searchDebounceTimeout = null;
       }, 300); // Wait 300ms after last keystroke
+    });
+
+    // Handle blur: clear pending debounce and focus flag when user explicitly clicks away
+    searchInput.addEventListener('blur', () => {
+      // Clear pending debounce timeout to prevent re-focusing after blur
+      if (this.searchDebounceTimeout !== null) {
+        window.clearTimeout(this.searchDebounceTimeout);
+        this.searchDebounceTimeout = null;
+      }
+      // Clear focus restoration flag
+      this.shouldFocusSearch = false;
     });
 
     // Sort dropdown
