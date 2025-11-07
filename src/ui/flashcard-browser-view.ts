@@ -15,8 +15,8 @@ export class FlashcardBrowserView extends ItemView {
   private component: Component = new Component();
   private isAnimating = false;
   private animationTimeoutId: number | null = null;
-  private searchDebounceTimeout: number | null = null;
-  private shouldFocusSearch = false;
+  private deckGridContainer: HTMLElement | null = null;
+  private isRendering = false;
 
   constructor(leaf: WorkspaceLeaf, plugin: FlashlyPlugin) {
     super(leaf);
@@ -81,11 +81,6 @@ export class FlashcardBrowserView extends ItemView {
       window.clearTimeout(this.animationTimeoutId);
       this.animationTimeoutId = null;
     }
-    // Clean up search debounce timeout
-    if (this.searchDebounceTimeout !== null) {
-      window.clearTimeout(this.searchDebounceTimeout);
-      this.searchDebounceTimeout = null;
-    }
     // Unload component to clean up
     this.component.unload();
   }
@@ -110,27 +105,24 @@ export class FlashcardBrowserView extends ItemView {
    * Render the entire view based on current mode
    */
   private async render(): Promise<void> {
-    const container = this.contentEl;
-    container.empty();
-    container.addClass('flashcard-browser-view');
+    // Prevent concurrent renders
+    if (this.isRendering) return;
+    
+    try {
+      this.isRendering = true;
+      const container = this.contentEl;
+      container.empty();
+      container.addClass('flashcard-browser-view');
 
-    const state = this.viewModel.getViewState();
+      const state = this.viewModel.getViewState();
 
-    if (state.mode === BrowserViewMode.DECK_LIST) {
-      this.renderDeckListView(container);
-      
-      // Restore focus to search input if needed
-      if (this.shouldFocusSearch) {
-        this.shouldFocusSearch = false;
-        const searchInput = container.querySelector('.deck-search-input') as HTMLInputElement;
-        if (searchInput) {
-          searchInput.focus();
-          // Restore cursor position to end
-          searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
-        }
+      if (state.mode === BrowserViewMode.DECK_LIST) {
+        this.renderDeckListView(container);
+      } else {
+        await this.renderCardView(container);
       }
-    } else {
-      await this.renderCardView(container);
+    } finally {
+      this.isRendering = false;
     }
   }
 
@@ -248,18 +240,8 @@ export class FlashcardBrowserView extends ItemView {
 
     searchInput.addEventListener('input', (evt: Event) => {
       this.deckSearchQuery = (evt.target as HTMLInputElement).value;
-      this.shouldFocusSearch = true;
-      
-      // Clear existing timeout
-      if (this.searchDebounceTimeout !== null) {
-        window.clearTimeout(this.searchDebounceTimeout);
-      }
-      
-      // Debounce render to avoid losing focus while typing
-      this.searchDebounceTimeout = window.setTimeout(() => {
-        void this.render();
-        this.searchDebounceTimeout = null;
-      }, 300); // Wait 300ms after last keystroke
+      // Update immediately - only updates the grid, not the search input
+      this.updateDeckGrid();
     });
 
     // Sort dropdown
@@ -284,7 +266,7 @@ export class FlashcardBrowserView extends ItemView {
 
     sortSelect.addEventListener('change', (evt: Event) => {
       this.deckSortBy = (evt.target as HTMLSelectElement).value as DeckSortOption;
-      void this.render();
+      this.updateDeckGrid();
     });
   }
 
@@ -321,9 +303,34 @@ export class FlashcardBrowserView extends ItemView {
   }
 
   /**
+   * Update only the deck grid without re-rendering the entire view.
+   * This prevents the search input from losing focus during typing.
+   */
+  private updateDeckGrid(): void {
+    if (!this.deckGridContainer) {
+      // Grid container not available, can't update
+      return;
+    }
+
+    this.populateDeckGrid(this.deckGridContainer);
+  }
+
+  /**
    * Render grid of deck cards
    */
   private renderDeckGrid(container: HTMLElement) {
+    // Store reference for updates
+    this.deckGridContainer = container.createDiv({ cls: 'deck-grid' });
+    this.populateDeckGrid(this.deckGridContainer);
+  }
+
+  /**
+   * Populate the deck grid with filtered and sorted cards
+   */
+  private populateDeckGrid(grid: HTMLElement): void {
+    // Clear existing content
+    grid.empty();
+    
     const deckList = this.viewModel.getDeckList();
 
     // Filter by search query
@@ -335,8 +342,6 @@ export class FlashcardBrowserView extends ItemView {
 
     // Sort decks
     const sortedDecks = this.sortDecks(filteredDecks);
-
-    const grid = container.createDiv({ cls: 'deck-grid' });
 
     if (sortedDecks.length === 0) {
       this.renderDeckListEmptyState(grid, deckList.length === 0);
