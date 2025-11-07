@@ -412,7 +412,7 @@ export class FlashcardBrowserView extends ItemView {
    * Render empty state for deck list
    */
   private renderDeckListEmptyState(container: HTMLElement, isActuallyEmpty: boolean) {
-    const emptyState = container.createDiv({ cls: 'empty-state' });
+    const emptyState = container.createDiv({ cls: 'empty-state deck-list-empty-state' });
     const emptyIcon = emptyState.createEl('div', { cls: 'empty-icon' });
     setIcon(emptyIcon, this.deckSearchQuery ? 'search' : 'inbox');
     emptyState.createEl('div', {

@@ -1112,6 +1112,12 @@
   color: var(--text-muted);
 }
 
+/* Deck list empty state - don't use height 100% to avoid covering header */
+.deck-list-empty-state {
+  height: auto;
+  min-height: 300px;
+}
+
 .empty-icon {
   font-size: 4em;
   margin-bottom: 16px;
