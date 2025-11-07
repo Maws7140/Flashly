@@ -159,7 +159,7 @@ export class ReviewModal extends Modal {
 
 		// Render markdown with full support for code blocks, images, etc.
 		if (this.component) {
-			MarkdownRenderer.render(
+			void MarkdownRenderer.render(
 				this.app,
 				current.card.front,
 				this.frontEl,
@@ -167,7 +167,7 @@ export class ReviewModal extends Modal {
 				this.component
 			);
 
-			MarkdownRenderer.render(
+			void MarkdownRenderer.render(
 				this.app,
 				current.card.back,
 				this.backEl,

@@ -143,7 +143,7 @@ export class ExportModal extends Modal {
 			includeMedia: this.includeMedia
 		};
 
-		const preview = await this.exportService.preview(options, 10);
+		const preview = this.exportService.preview(options, 10);
 		
 		new Notice(
 			`Preview: ${preview.previewCount} of ${preview.totalCount} cards will be exported`
