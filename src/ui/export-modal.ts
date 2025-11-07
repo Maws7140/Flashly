@@ -50,8 +50,8 @@ export class ExportModal extends Modal {
 		
 		// Select All / Deselect All buttons
 		const buttonContainer = deckContainer.createDiv({ cls: 'export-button-group' });
-		const selectAllBtn = buttonContainer.createEl('button', { text: 'Select all' });
-		const deselectAllBtn = buttonContainer.createEl('button', { text: 'Deselect all' });
+		const selectAllBtn = buttonContainer.createEl('button', { text: 'Select All' });
+		const deselectAllBtn = buttonContainer.createEl('button', { text: 'Deselect All' });
 		
 		selectAllBtn.onclick = () => {
 			this.selectedDecks = [...decks];

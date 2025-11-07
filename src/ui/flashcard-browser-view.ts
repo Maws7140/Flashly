@@ -737,7 +737,7 @@ export class FlashcardBrowserView extends ItemView {
       return; // Prevent multiple simultaneous animations
     }
 
-    const cardInner = this.containerEl.querySelector('.card-inner') as HTMLElement | null;
+    const cardInner = this.containerEl.querySelector('.card-inner') ;
 
     if (!cardInner) {
       // Fallback to full render if the card element is missing

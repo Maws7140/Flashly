@@ -115,7 +115,7 @@ class GenerateQuizModal extends Modal {
 			const controlsDiv = deckContainer.createDiv({ cls: 'quiz-deck-controls' });
 
 			const selectAllBtn = controlsDiv.createEl('button', {
-				text: 'Select all',
+				text: 'Select All',
 				cls: 'quiz-deck-control-btn'
 			});
 			selectAllBtn.addEventListener('click', (e) => {
@@ -129,7 +129,7 @@ class GenerateQuizModal extends Modal {
 			});
 
 			const deselectAllBtn = controlsDiv.createEl('button', {
-				text: 'Deselect all',
+				text: 'Deselect All',
 				cls: 'quiz-deck-control-btn'
 			});
 			deselectAllBtn.addEventListener('click', (e) => {
