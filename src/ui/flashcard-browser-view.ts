@@ -17,6 +17,7 @@ export class FlashcardBrowserView extends ItemView {
   private animationTimeoutId: number | null = null;
   private deckGridContainer: HTMLElement | null = null;
   private isRendering = false;
+  private needsRerender = false;
 
   constructor(leaf: WorkspaceLeaf, plugin: FlashlyPlugin) {
     super(leaf);
@@ -106,7 +107,10 @@ export class FlashcardBrowserView extends ItemView {
    */
   private async render(): Promise<void> {
     // Prevent concurrent renders
-    if (this.isRendering) return;
+    if (this.isRendering) {
+      this.needsRerender = true;
+      return;
+    }
     
     try {
       this.isRendering = true;
@@ -123,6 +127,12 @@ export class FlashcardBrowserView extends ItemView {
       }
     } finally {
       this.isRendering = false;
+      
+      // Re-render once if needed during async work
+      if (this.needsRerender) {
+        this.needsRerender = false;
+        void this.render();
+      }
     }
   }
 
