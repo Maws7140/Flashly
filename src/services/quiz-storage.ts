@@ -3,7 +3,7 @@
  * Manages quiz persistence and history
  */
 
-import { Plugin } from 'obsidian';
+import type FlashlyPlugin from '../../main';
 import { Quiz, QuizQuestion, QuizConfig, QuizGenerationMethod } from '../models/quiz';
 
 interface QuizStorageData {
@@ -29,7 +29,7 @@ export class QuizStorageService {
 	private quizzes: Map<string, Quiz> = new Map();
 	private quizHistory: string[] = [];
 
-	constructor(private plugin: Plugin) {}
+	constructor(private plugin: FlashlyPlugin) {}
 
 	/**
 	 * Load quizzes from storage
@@ -38,7 +38,7 @@ export class QuizStorageService {
 		const data = await this.plugin.loadData() as Record<string, unknown> | null;
 
 		if (!data || !data.quizStorage) {
-			console.debug('Quiz storage: No existing data found, initializing empty storage');
+			this.plugin.logger.debug('Quiz storage: No existing data found, initializing empty storage');
 			this.quizzes = new Map();
 			this.quizHistory = [];
 			return;
@@ -52,7 +52,7 @@ export class QuizStorageService {
 		}
 
 		this.quizHistory = quizStorage.quizHistory || [];
-		console.debug('Quiz storage loaded:', this.quizzes.size, 'quizzes');
+		this.plugin.logger.debug('Quiz storage loaded:', this.quizzes.size, 'quizzes');
 	}
 
 	/**
@@ -74,7 +74,7 @@ export class QuizStorageService {
 
 			existingData.quizStorage = quizStorage;
 			await this.plugin.saveData(existingData);
-			console.debug('Quiz storage saved successfully:', this.quizzes.size, 'quizzes');
+			this.plugin.logger.debug('Quiz storage saved successfully:', this.quizzes.size, 'quizzes');
 		} catch (error) {
 			console.error('Failed to save quiz storage:', error);
 			throw error;

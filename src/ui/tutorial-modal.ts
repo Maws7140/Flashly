@@ -79,9 +79,12 @@ export class TutorialModal extends Modal {
 		
 		// Content (use DOM methods instead of innerHTML for user-controlled content)
 		const contentDiv = contentContainer.createDiv();
-		// Since step.content comes from getTutorialSteps() which returns static trusted HTML,
-		// and is not user-controlled, we can safely use innerHTML here
-		contentDiv.insertAdjacentHTML("afterbegin", step.content);
+		// Parse HTML safely using DOMParser instead of insertAdjacentHTML
+		const parser = new DOMParser();
+		const doc = parser.parseFromString(step.content, 'text/html');
+		Array.from(doc.body.childNodes).forEach(node => {
+			contentDiv.appendChild(node.cloneNode(true));
+		});
 		
 		// Optional image
 		if (step.image) {

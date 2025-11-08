@@ -14,7 +14,7 @@ export class RefreshDecksCommand {
 	) {}
 
 	getId(): string {
-		return 'flashly-refresh-decks';
+		return 'refresh-decks';
 	}
 
 	getName(): string {

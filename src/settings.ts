@@ -40,12 +40,17 @@ export interface TutorialSettings {
 	version: string;
 }
 
+export interface DeveloperSettings {
+	enableDebugLogging: boolean;
+}
+
 export interface FlashlySettings {
 	parser: FlashcardParserSettings;
 	review: ReviewSettings;
 	quiz: AIQuizSettings;
 	export: ExportSettings;
 	tutorial: TutorialSettings;
+	developer: DeveloperSettings;
 }
 
 export const DEFAULT_SETTINGS: FlashlySettings = {
@@ -97,5 +102,8 @@ export const DEFAULT_SETTINGS: FlashlySettings = {
 	tutorial: {
 		completed: false,
 		version: '1.0.0'
+	},
+	developer: {
+		enableDebugLogging: false
 	}
 };

@@ -20,7 +20,7 @@ export class StartReviewCommand {
 	) {}
 
 	getId(): string {
-		return 'flashly-start-review';
+		return 'start-review';
 	}
 
 	getName(): string {

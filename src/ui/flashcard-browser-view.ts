@@ -43,7 +43,7 @@ export class FlashcardBrowserView extends ItemView {
     return 'layers';
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
+  // eslint-disable-next-line @typescript-eslint/require-await -- Obsidian API requires async signature
   async onOpen(): Promise<void> {
     // Load component
     this.component.load();
@@ -83,7 +83,7 @@ export class FlashcardBrowserView extends ItemView {
     this.containerEl.setAttribute('tabindex', '-1');
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
+  // eslint-disable-next-line @typescript-eslint/require-await -- Obsidian API requires async signature
   async onClose(): Promise<void> {
     // Clean up animation timeout
     if (this.animationTimeoutId !== null) {
@@ -232,8 +232,8 @@ export class FlashcardBrowserView extends ItemView {
     setIcon(scanIcon, 'search');
     scanBtn.createSpan({ cls: 'deck-btn-text', text: 'Scan vault' });
     scanBtn.addEventListener('click', () => {
+      // Execute scan command - it will show its own notices
       (this.app as ObsidianApp).commands.executeCommandById('flashly:scan-vault');
-      new Notice('Scanning vault for flashcards...');
     });
 
     const stats = this.viewModel.getStatistics();

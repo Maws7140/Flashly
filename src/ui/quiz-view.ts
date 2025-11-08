@@ -23,6 +23,12 @@ export class QuizView extends ItemView {
 	private component: Component | null = null;
 	private debounceTimer: number | null = null;
 
+	// Learn mode state
+	private learnModeEnabled: boolean = false;
+	private questionQueue: number[] = [];
+	private currentQueuePosition: number = 0;
+	private answeredQuestions: Set<number> = new Set();
+
 	constructor(leaf: WorkspaceLeaf, plugin: FlashlyPlugin) {
 		super(leaf);
 		this.plugin = plugin;
@@ -41,7 +47,7 @@ export class QuizView extends ItemView {
 		return 'help-circle';
 	}
 
-  // eslint-disable-next-line @typescript-eslint/require-await
+  // eslint-disable-next-line @typescript-eslint/require-await -- Obsidian API requires async signature
 	async onOpen(): Promise<void> {
 		this.component = new Component();
 		this.component.load();
@@ -49,7 +55,7 @@ export class QuizView extends ItemView {
 		document.addEventListener('keydown', this.keydownHandler);
 	}
 
-  // eslint-disable-next-line @typescript-eslint/require-await
+  // eslint-disable-next-line @typescript-eslint/require-await -- Obsidian API requires async signature
 	async onClose(): Promise<void> {
 		if (this.debounceTimer !== null) {
 			window.clearTimeout(this.debounceTimer);
@@ -68,8 +74,41 @@ export class QuizView extends ItemView {
 	 */
 	loadQuiz(quiz: Quiz): void {
 		this.currentQuiz = quiz;
-		this.currentQuestionIndex = 0;
+		this.learnModeEnabled = quiz.config.learnMode ?? false;
+
+		if (this.learnModeEnabled) {
+			// Initialize question queue with all question indices
+			this.questionQueue = Array.from({ length: quiz.questions.length }, (_, i) => i);
+			this.currentQueuePosition = 0;
+			this.answeredQuestions.clear();
+		} else {
+			this.currentQuestionIndex = 0;
+		}
+
 		void this.render();
+	}
+
+	/**
+	 * Get current question (supports both normal and learn mode)
+	 */
+	private getCurrentQuestion(): QuizQuestion | null {
+		if (!this.currentQuiz) return null;
+
+		if (this.learnModeEnabled) {
+			const qIndex = this.questionQueue[this.currentQueuePosition];
+			return this.currentQuiz.questions[qIndex];
+		}
+		return this.currentQuiz.questions[this.currentQuestionIndex];
+	}
+
+	/**
+	 * Get current question index (supports both normal and learn mode)
+	 */
+	private getCurrentQuestionIndex(): number {
+		if (this.learnModeEnabled) {
+			return this.questionQueue[this.currentQueuePosition];
+		}
+		return this.currentQuestionIndex;
 	}
 
 	private async render(): Promise<void> {
@@ -127,7 +166,7 @@ export class QuizView extends ItemView {
 	private async renderQuestion(container: HTMLElement): Promise<void> {
 		if (!this.currentQuiz) return;
 
-		const question = this.currentQuiz.questions[this.currentQuestionIndex];
+		const question = this.getCurrentQuestion();
 		if (!question) return;
 
 		// Header
@@ -136,13 +175,25 @@ export class QuizView extends ItemView {
 
 		// Progress
 		const progress = container.createDiv({ cls: 'quiz-progress' });
-		const progressBar = progress.createDiv({ cls: 'quiz-progress-bar' });
-		const progressFill = progressBar.createDiv({ cls: 'quiz-progress-fill' });
-		const percentage = ((this.currentQuestionIndex + 1) / this.currentQuiz.totalQuestions) * 100;
-		progressFill.setCssProps({ '--progress-width': `${percentage}%` });
 
-		const progressText = progress.createDiv({ cls: 'quiz-progress-text' });
-		progressText.setText(`Question ${this.currentQuestionIndex + 1} of ${this.currentQuiz.totalQuestions}`);
+		if (this.learnModeEnabled) {
+			// Learn mode progress
+			const queueRemaining = this.questionQueue.length - this.currentQueuePosition;
+			const totalChecked = this.answeredQuestions.size;
+			const totalQuestions = this.currentQuiz.totalQuestions;
+
+			const progressText = progress.createDiv({ cls: 'quiz-progress-text quiz-progress-learn-mode' });
+			progressText.setText(`${queueRemaining} remaining in queue | ${totalChecked} of ${totalQuestions} checked`);
+		} else {
+			// Normal mode progress
+			const progressBar = progress.createDiv({ cls: 'quiz-progress-bar' });
+			const progressFill = progressBar.createDiv({ cls: 'quiz-progress-fill' });
+			const percentage = ((this.currentQuestionIndex + 1) / this.currentQuiz.totalQuestions) * 100;
+			progressFill.setCssProps({ '--progress-width': `${percentage}%` });
+
+			const progressText = progress.createDiv({ cls: 'quiz-progress-text' });
+			progressText.setText(`Question ${this.currentQuestionIndex + 1} of ${this.currentQuiz.totalQuestions}`);
+		}
 
 		// Question content
 		const questionContainer = container.createDiv({ cls: 'quiz-question-container' });
@@ -177,32 +228,63 @@ export class QuizView extends ItemView {
 			}
 		}, 100);
 
+		// Learn mode feedback (if answer has been checked)
+		if (this.learnModeEnabled && question.checked) {
+			this.renderLearnModeFeedback(questionContainer, question);
+		}
+
 		// Navigation
 		const nav = container.createDiv({ cls: 'quiz-navigation' });
 
-		if (this.currentQuestionIndex > 0) {
-			const prevBtn = nav.createEl('button', { text: '← Previous', cls: 'quiz-nav-btn' });
-			prevBtn.addEventListener('click', () => {
-				this.currentQuestionIndex--;
-				void this.render();
+		if (this.learnModeEnabled) {
+			// Learn mode navigation
+			if (!question.checked) {
+				// Show "Check Answer" button
+				const checkBtn = nav.createEl('button', {
+					text: 'Check Answer',
+					cls: 'quiz-nav-btn quiz-nav-primary'
+				});
+
+				checkBtn.addEventListener('click', () => {
+					void this.handleCheckAnswer();
+				});
+			} else {
+				// Show "Continue" button
+				const continueBtn = nav.createEl('button', {
+					text: 'Continue →',
+					cls: 'quiz-nav-btn quiz-nav-primary'
+				});
+
+				continueBtn.addEventListener('click', () => {
+					this.handleLearnModeContinue();
+				});
+			}
+		} else {
+			// Normal mode navigation
+			if (this.currentQuestionIndex > 0) {
+				const prevBtn = nav.createEl('button', { text: '← Previous', cls: 'quiz-nav-btn' });
+				prevBtn.addEventListener('click', () => {
+					this.currentQuestionIndex--;
+					void this.render();
+				});
+			}
+
+			const nextBtn = nav.createEl('button', {
+				text: this.currentQuestionIndex < this.currentQuiz.totalQuestions - 1 ? 'Next →' : 'Finish Quiz',
+				cls: 'quiz-nav-btn quiz-nav-primary'
+			});
+
+			nextBtn.addEventListener('click', () => {
+				if (!this.currentQuiz) return;
+
+				if (this.currentQuestionIndex < this.currentQuiz.totalQuestions - 1) {
+					this.currentQuestionIndex++;
+					void this.render();
+				} else {
+					void this.finishQuiz();
+				}
 			});
 		}
-
-		const nextBtn = nav.createEl('button', {
-			text: this.currentQuestionIndex < this.currentQuiz.totalQuestions - 1 ? 'Next →' : 'Finish Quiz',
-			cls: 'quiz-nav-btn quiz-nav-primary'
-		});
-
-		nextBtn.addEventListener('click', () => {
-			if (!this.currentQuiz) return;
-
-			if (this.currentQuestionIndex < this.currentQuiz.totalQuestions - 1) {
-				this.currentQuestionIndex++;
-				void this.render();
-			} else {
-				void this.finishQuiz();
-			}
-		});
 
 		// Keyboard shortcuts hint
 		const keyboardHints = container.createDiv({ cls: 'quiz-keyboard-hints' });
@@ -313,6 +395,153 @@ export class QuizView extends ItemView {
 		}
 	}
 
+	/**
+	 * Handle answer check in learn mode
+	 */
+	private async handleCheckAnswer(): Promise<void> {
+		const question = this.getCurrentQuestion();
+		const qIndex = this.getCurrentQuestionIndex();
+
+		if (!question) return;
+
+		if (!question.userAnswer && question.userAnswer !== 0) {
+			new Notice('Please select an answer first');
+			return;
+		}
+
+		// Check the answer
+		question.checked = true;
+		question.correct = checkAnswer(question, question.userAnswer);
+		question.attemptCount = (question.attemptCount || 0) + 1;
+
+		this.answeredQuestions.add(qIndex);
+
+		// If incorrect, re-queue the question (add to end)
+		if (!question.correct) {
+			this.questionQueue.push(qIndex);
+		}
+
+		// Re-render to show feedback
+		await this.render();
+	}
+
+	/**
+	 * Handle continue in learn mode
+	 */
+	private handleLearnModeContinue(): void {
+		// Move to next question in queue
+		this.currentQueuePosition++;
+
+		// Check if queue is complete
+		if (this.currentQueuePosition >= this.questionQueue.length) {
+			void this.finishLearnModeQuiz();
+		} else {
+			// Reset state for the next question if it's a retry
+			const nextQuestion = this.getCurrentQuestion();
+			if (nextQuestion && nextQuestion.checked && !nextQuestion.correct) {
+				// This is a re-queued question that was answered incorrectly before
+				// Reset it so user can try again
+				nextQuestion.checked = false;
+				nextQuestion.userAnswer = undefined;
+			}
+
+			void this.render();
+		}
+	}
+
+	/**
+	 * Finish learn mode quiz (all questions answered correctly)
+	 */
+	private async finishLearnModeQuiz(): Promise<void> {
+		if (!this.currentQuiz) return;
+
+		// Calculate stats
+		const totalQuestions = this.currentQuiz.questions.length;
+		const totalAttempts = this.currentQuiz.questions.reduce((sum, q) => sum + (q.attemptCount || 1), 0);
+		const questionsRequeued = this.currentQuiz.questions.filter(q => (q.attemptCount || 1) > 1).length;
+		const firstPassCorrect = this.currentQuiz.questions.filter(q => (q.attemptCount || 1) === 1).length;
+
+		// Set quiz completion data
+		this.currentQuiz.completed = new Date();
+		this.currentQuiz.score = 100; // Learn mode always ends at 100%
+		this.currentQuiz.correctCount = totalQuestions;
+
+		// Store learn mode stats
+		this.currentQuiz.learnModeStats = {
+			totalAttempts,
+			questionsRequeued,
+			firstPassCorrect
+		};
+
+		// Save quiz
+		try {
+			await this.plugin.quizStorage.updateQuiz(this.currentQuiz);
+			this.plugin.logger.debug('Learn mode quiz completed:', this.currentQuiz.id);
+		} catch (error) {
+			console.error('Failed to save learn mode quiz:', error);
+			new Notice('Failed to save quiz results');
+		}
+
+		// Render results
+		await this.render();
+	}
+
+	/**
+	 * Render feedback for learn mode
+	 */
+	private renderLearnModeFeedback(container: HTMLElement, question: QuizQuestion): void {
+		const feedbackCard = container.createDiv({ cls: 'quiz-learn-feedback' });
+
+		if (question.correct) {
+			// Correct answer feedback
+			feedbackCard.addClass('quiz-learn-feedback-correct');
+			feedbackCard.createEl('h3', {
+				text: '✓ Correct!',
+				cls: 'quiz-learn-feedback-title'
+			});
+		} else {
+			// Incorrect answer feedback
+			feedbackCard.addClass('quiz-learn-feedback-incorrect');
+			feedbackCard.createEl('h3', {
+				text: '✗ Incorrect',
+				cls: 'quiz-learn-feedback-title'
+			});
+
+			// Show user's answer
+			const userAnswerDiv = feedbackCard.createDiv({ cls: 'quiz-learn-your-answer' });
+			userAnswerDiv.createEl('strong', { text: 'Your answer: ' });
+			userAnswerDiv.createSpan({ text: this.formatAnswer(question, question.userAnswer!) });
+
+			// Show correct answer
+			const correctAnswerDiv = feedbackCard.createDiv({ cls: 'quiz-learn-correct-answer' });
+			correctAnswerDiv.createEl('strong', { text: 'Correct answer: ' });
+			correctAnswerDiv.createSpan({ text: this.formatAnswer(question, question.correctAnswer) });
+
+			// Show explanation if available
+			if (question.explanation) {
+				const explanationDiv = feedbackCard.createDiv({ cls: 'quiz-learn-explanation' });
+				explanationDiv.createEl('strong', { text: 'Explanation:' });
+				explanationDiv.createEl('p', { text: question.explanation });
+			}
+
+			// Show re-queue notice
+			feedbackCard.createDiv({
+				text: 'This question will appear again later.',
+				cls: 'quiz-learn-requeue-notice'
+			});
+		}
+	}
+
+	/**
+	 * Format answer for display
+	 */
+	private formatAnswer(question: QuizQuestion, answer: string | number): string {
+		if (question.type === 'multiple-choice' && typeof answer === 'number' && question.options) {
+			return question.options[answer] || String(answer);
+		}
+		return String(answer);
+	}
+
 	private async finishQuiz(): Promise<void> {
 		if (!this.currentQuiz) return;
 
@@ -335,11 +564,11 @@ export class QuizView extends ItemView {
 		const quizStorage = this.plugin.quizStorage;
 		try {
 			await quizStorage.updateQuiz(this.currentQuiz);
-			console.debug('Quiz updated successfully:', this.currentQuiz.id, 'Completed:', this.currentQuiz.completed);
+			this.plugin.logger.debug('Quiz updated successfully:', this.currentQuiz.id, 'Completed:', this.currentQuiz.completed);
 
 			// Verify it was saved
 			const savedQuiz = quizStorage.getQuiz(this.currentQuiz.id);
-			console.debug('Quiz retrieved after save:', savedQuiz?.completed);
+			this.plugin.logger.debug('Quiz retrieved after save:', savedQuiz?.completed);
 		} catch (error) {
 			console.error('Failed to update quiz:', error);
 			new Notice('Failed to save quiz results');

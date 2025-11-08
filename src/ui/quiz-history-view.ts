@@ -42,12 +42,12 @@ export class QuizHistoryView extends ItemView {
 		return 'history';
 	}
 
-  // eslint-disable-next-line @typescript-eslint/require-await
+  // eslint-disable-next-line @typescript-eslint/require-await -- Obsidian API requires async signature
 	async onOpen(): Promise<void> {
 		this.queueRender();
 	}
 
-  // eslint-disable-next-line @typescript-eslint/require-await
+  // eslint-disable-next-line @typescript-eslint/require-await -- Obsidian API requires async signature
 	async onClose(): Promise<void> {
 		this.containerEl.empty();
 	}
@@ -70,10 +70,10 @@ export class QuizHistoryView extends ItemView {
 
 		// Get all quizzes
 		const allQuizzes = this.plugin.quizStorage.getAllQuizzes();
-		console.debug('Quiz History - All quizzes:', allQuizzes.length);
-		console.debug('Quiz History - Quizzes:', allQuizzes);
+		this.plugin.logger.debug('Quiz History - All quizzes:', allQuizzes.length);
+		this.plugin.logger.debug('Quiz History - Quizzes:', allQuizzes);
 		const completedQuizzes = allQuizzes.filter(q => q.completed);
-		console.debug('Quiz History - Completed quizzes:', completedQuizzes.length);
+		this.plugin.logger.debug('Quiz History - Completed quizzes:', completedQuizzes.length);
 
 		if (completedQuizzes.length === 0) {
 			this.renderEmptyState(container);
@@ -220,6 +220,12 @@ export class QuizHistoryView extends ItemView {
 			const badge = titleSection.createSpan({ cls: 'quiz-card-badge' });
 			badge.setText(quiz.generationMethod === 'ai-generated' ? 'AI' : 'Traditional');
 
+			// Add learn mode badge if applicable
+			if (quiz.config.learnMode) {
+				const learnBadge = titleSection.createSpan({ cls: 'quiz-card-learn-mode-badge' });
+				learnBadge.setText('Learn Mode');
+			}
+
 			const scoreEl = cardHeader.createDiv({ cls: 'quiz-card-score' });
 			scoreEl.setText(`${quiz.score}%`);
 
@@ -256,6 +262,14 @@ export class QuizHistoryView extends ItemView {
 					text: timeTaken,
 					cls: 'quiz-card-detail'
 				});
+			}
+
+			// Show learn mode stats if available
+			if (quiz.learnModeStats) {
+				const learnStats = cardDetails.createDiv({ cls: 'quiz-learn-stats' });
+				learnStats.createDiv({ text: `First-try correct: ${quiz.learnModeStats.firstPassCorrect}/${quiz.totalQuestions}` });
+				learnStats.createDiv({ text: `Total attempts: ${quiz.learnModeStats.totalAttempts}` });
+				learnStats.createDiv({ text: `Questions retried: ${quiz.learnModeStats.questionsRequeued}` });
 			}
 
 			// Actions section

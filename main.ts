@@ -17,6 +17,7 @@ import { ExportService } from './src/services/export-service';
 import { ExportCommand } from './src/commands/export-command';
 import { ReplayTutorialCommand } from './src/commands/replay-tutorial';
 import { TutorialModal, getTutorialSteps } from './src/ui/tutorial-modal';
+import { Logger } from './src/utils/logger';
 
 export default class FlashlyPlugin extends Plugin {
 	settings: FlashlySettings;
@@ -32,10 +33,14 @@ export default class FlashlyPlugin extends Plugin {
 	exportCommand: ExportCommand;
 	replayTutorialCommand: ReplayTutorialCommand;
 	statusBarItem: HTMLElement;
+	logger: Logger;
 
 	async onload() {
 		// Load settings
 		await this.loadSettings();
+
+		// Initialize logger (must be after settings are loaded)
+		this.logger = new Logger(this);
 
 		// Initialize services
 		this.storage = new StorageService(this);
@@ -293,6 +298,10 @@ export default class FlashlyPlugin extends Plugin {
 			tutorial: {
 				...DEFAULT_SETTINGS.tutorial,
 				...(data?.tutorial ?? {})
+			},
+			developer: {
+				...DEFAULT_SETTINGS.developer,
+				...(data?.developer ?? {})
 			}
 		};
 	}

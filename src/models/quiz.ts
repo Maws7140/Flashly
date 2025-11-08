@@ -17,6 +17,14 @@ export interface QuizQuestion {
 	correct?: boolean;                   // Whether user answered correctly
 	sourceCardId?: string;               // Original card ID (for traditional)
 	explanation?: string;                // Explanation for the answer (AI can provide this)
+	attemptCount?: number;               // Number of times question was attempted (learn mode)
+	checked?: boolean;                   // Whether answer has been checked (learn mode)
+}
+
+export interface LearnModeStats {
+	totalAttempts: number;               // Total question attempts (including retries)
+	questionsRequeued: number;           // How many questions were re-added to queue
+	firstPassCorrect: number;            // Questions answered correctly on first try
 }
 
 export interface Quiz {
@@ -31,6 +39,7 @@ export interface Quiz {
 	correctCount?: number;               // Number of correct answers
 	totalQuestions: number;              // Total number of questions
 	config: QuizConfig;                  // Configuration used to generate quiz
+	learnModeStats?: LearnModeStats;     // Statistics for learn mode quizzes
 }
 
 export interface QuizConfig {
@@ -41,6 +50,7 @@ export interface QuizConfig {
 	deckFilter?: string[];               // Optional deck filter
 	useAI: boolean;                      // Use AI generation
 	aiProvider?: AIProvider;             // AI provider if using AI
+	learnMode?: boolean;                 // Enable learn mode (immediate feedback & retry)
 }
 
 export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'custom';
@@ -148,7 +158,8 @@ export const DEFAULT_QUIZ_CONFIG: QuizConfig = {
 	includeMultipleChoice: true,
 	includeFillBlank: true,
 	includeTrueFalse: true,
-	useAI: false
+	useAI: false,
+	learnMode: false
 };
 
 /**
@@ -169,8 +180,8 @@ export const DEFAULT_AI_QUIZ_SETTINGS: AIQuizSettings = {
 	},
 	gemini: {
 		apiKey: '',
-		model: 'gemini-2.5-flash',
-		baseUrl: 'https://generativelanguage.googleapis.com/v1beta'
+		model: 'gemini-1.5-flash', // Recommended: 'gemini-2.5-flash', 'gemini-2.0-flash', or 'gemini-1.5-flash'
+		baseUrl: 'https://generativelanguage.googleapis.com/v1beta' // Try 'v1' if you get 404 errors with newer models
 	},
 	temperature: 0.7,
 	maxTokens: 4000,

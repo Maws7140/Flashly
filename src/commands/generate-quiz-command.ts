@@ -85,6 +85,17 @@ class GenerateQuizModal extends Modal {
 				});
 			});
 
+		// Learn Mode
+		new Setting(contentEl)
+			.setName('Learn mode')
+			.setDesc('Get immediate feedback and retry incorrect answers until you master all questions')
+			.addToggle(toggle => {
+				toggle.setValue(this.config.learnMode ?? false);
+				toggle.onChange(value => {
+					this.config.learnMode = value;
+				});
+			});
+
 		// Deck filter
 		new Setting(contentEl)
 			.setName('Filter by decks')
@@ -111,11 +122,11 @@ class GenerateQuizModal extends Modal {
 		} else {
 			const selectedDecks = new Set<string>();
 
-			// Add "Select All" / "Deselect All" buttons
+			// Add "Select all" / "Deselect all" buttons
 			const controlsDiv = deckContainer.createDiv({ cls: 'quiz-deck-controls' });
 
 			const selectAllBtn = controlsDiv.createEl('button', {
-				text: 'Select All',
+				text: 'Select all',
 				cls: 'quiz-deck-control-btn'
 			});
 			selectAllBtn.addEventListener('click', (e) => {
@@ -129,7 +140,7 @@ class GenerateQuizModal extends Modal {
 			});
 
 			const deselectAllBtn = controlsDiv.createEl('button', {
-				text: 'Deselect All',
+				text: 'Deselect all',
 				cls: 'quiz-deck-control-btn'
 			});
 			deselectAllBtn.addEventListener('click', (e) => {
@@ -280,7 +291,7 @@ class GenerateQuizModal extends Modal {
 			if (this.config.useAI && this.plugin.settings.quiz.enabled) {
 				// Use AI generator
 				generationMethod = 'ai-generated';
-				const aiGenerator = new AIQuizGenerator(this.plugin.settings.quiz);
+				const aiGenerator = new AIQuizGenerator(this.plugin.settings.quiz, this.plugin.logger);
 				questions = await aiGenerator.generateQuestions(cards, this.config);
 				loadingNotice.hide();
 				new Notice('Quiz generated with AI! 🤖');

@@ -36,12 +36,12 @@ export class StatisticsView extends ItemView {
 		return 'bar-chart';
 	}
 
-  // eslint-disable-next-line @typescript-eslint/require-await
+  // eslint-disable-next-line @typescript-eslint/require-await -- Obsidian API requires async signature
 	async onOpen(): Promise<void> {
 		this.queueRender();
 	}
 
-  // eslint-disable-next-line @typescript-eslint/require-await
+  // eslint-disable-next-line @typescript-eslint/require-await -- Obsidian API requires async signature
 	async onClose(): Promise<void> {
 		this.containerEl.empty();
 	}

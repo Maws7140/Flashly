@@ -451,15 +451,16 @@ export class FlashlySettingTab extends PluginSettingTab {
 						});
 					});
 
-				new Setting(containerEl)
-					.setName('Model')
-					.setDesc('Gemini model to use')
-					.addDropdown(dropdown => dropdown
-						.addOption('gemini-2.5-flash', 'Gemini 2.5 Flash (fast, cheaper)')
-						.addOption('gemini-2.5-pro', 'Gemini 2.5 Pro (most capable)')
-						.addOption('gemini-2.0-flash', 'Gemini 2.0 Flash')
-						.addOption('gemini-1.5-flash', 'Gemini 1.5 Flash (legacy)')
-						.setValue(this.plugin.settings.quiz.gemini?.model || 'gemini-2.5-flash')
+			new Setting(containerEl)
+				.setName('Model')
+				.setDesc('Gemini model to use')
+				.addDropdown(dropdown => dropdown
+					.addOption('gemini-2.5-pro', 'Gemini 2.5 Pro (most capable, reasoning)')
+					.addOption('gemini-2.5-flash', 'Gemini 2.5 Flash (fast, best price/performance)')
+					.addOption('gemini-2.0-flash', 'Gemini 2.0 Flash')
+					.addOption('gemini-1.5-pro', 'Gemini 1.5 Pro (legacy)')
+					.addOption('gemini-1.5-flash', 'Gemini 1.5 Flash (legacy)')
+					.setValue(this.plugin.settings.quiz.gemini?.model || 'gemini-2.5-flash')
 						.onChange(async (value) => {
 							if (!this.plugin.settings.quiz.gemini) {
 								this.plugin.settings.quiz.gemini = {
@@ -622,5 +623,21 @@ export class FlashlySettingTab extends PluginSettingTab {
 					});
 					modal.open();
 				}));
+
+		// Developer Settings
+		new Setting(containerEl)
+			.setName('Developer')
+			.setHeading();
+
+		new Setting(containerEl)
+			.setName('Enable debug logging')
+			.setDesc('Show detailed debug logs in the console (useful for troubleshooting)')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.developer.enableDebugLogging)
+				.onChange(async (value) => {
+					this.plugin.settings.developer.enableDebugLogging = value;
+					await this.plugin.saveSettings();
+				})
+			);
 	}
 }

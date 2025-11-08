@@ -6,6 +6,7 @@
 import { FlashlyCard } from '../models/card';
 import { QuizQuestion, QuizConfig, AIQuizSettings, AIQuizGenerationResponse, QuizQuestionType } from '../models/quiz';
 import { requestUrl } from 'obsidian';
+import type { Logger } from '../utils/logger';
 
 interface ParsedAIQuestion {
 	type: QuizQuestionType;
@@ -20,7 +21,10 @@ interface ParsedAIResponse {
 }
 
 export class AIQuizGenerator {
-	constructor(private settings: AIQuizSettings) {}
+	constructor(
+		private settings: AIQuizSettings,
+		private logger?: Logger
+	) {}
 
 	/**
 	 * Generate quiz questions using AI
@@ -260,17 +264,21 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 		}
 
 		const baseUrl = this.settings.gemini.baseUrl || 'https://generativelanguage.googleapis.com/v1beta';
-		const model = this.settings.gemini.model || 'gemini-2.5-flash';
+		const model = this.settings.gemini.model || 'gemini-1.5-flash'; // Fallback to stable model
 
+		let response;
 		try {
-			const url = `${baseUrl}/models/${model}:generateContent?key=${this.settings.gemini.apiKey}`;
-			console.debug('Gemini API URL:', url.replace(this.settings.gemini.apiKey, 'API_KEY_HIDDEN'));
+			// Use x-goog-api-key header for authentication (preferred method)
+			const url = `${baseUrl}/models/${model}:generateContent`;
+			this.logger?.debug('Gemini API URL:', url);
+			this.logger?.debug('Using Gemini model:', model);
 
-			const response = await requestUrl({
+			response = await requestUrl({
 				url,
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
+					'x-goog-api-key': this.settings.gemini.apiKey
 				},
 				body: JSON.stringify({
 					contents: [{
@@ -285,11 +293,50 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 					}
 				})
 			});
+		} catch (requestError: any) {
+			// Handle HTTP errors (400, 401, 403, etc.)
+			console.error('Gemini API request failed:', requestError);
+			console.error('Error status:', requestError.status);
+			
+			// Try to extract error message from response
+			let errorDetails = 'Unknown error';
+			try {
+				if (requestError.json) {
+					const errorData = requestError.json;
+					console.error('Gemini error response:', JSON.stringify(errorData, null, 2));
+					
+					// Gemini error format: { error: { code, message, status } }
+					if (errorData.error?.message) {
+						errorDetails = errorData.error.message;
+					} else if (errorData.message) {
+						errorDetails = errorData.message;
+					} else {
+						errorDetails = JSON.stringify(errorData);
+					}
+				} else if (requestError.text) {
+					errorDetails = requestError.text;
+					console.error('Gemini error text:', errorDetails);
+				}
+			} catch (parseError) {
+				console.error('Could not parse error response:', parseError);
+			}
+
+			// Provide helpful error messages based on status code
+			if (requestError.status === 400) {
+				throw new Error(`Gemini API returned 400 Bad Request: ${errorDetails}. Common causes: invalid model name (check that '${model}' exists), invalid parameters, or malformed request.`);
+			} else if (requestError.status === 401 || requestError.status === 403) {
+				throw new Error(`Gemini API authentication failed (${requestError.status}): ${errorDetails}. Check your API key in settings.`);
+			} else if (requestError.status === 429) {
+				throw new Error(`Gemini API rate limit exceeded: ${errorDetails}. Please wait and try again.`);
+			} else {
+				throw new Error(`Gemini API request failed (status ${requestError.status}): ${errorDetails}`);
+			}
+		}
 
 		const data = response.json;
-		
+
 		// Log the full response for debugging
-		console.debug('Full Gemini API response:', JSON.stringify(data, null, 2));
+		this.logger?.debug('Full Gemini API response:', JSON.stringify(data, null, 2));
 
 		// Check if response has candidates
 		if (!data.candidates || data.candidates.length === 0) {
@@ -305,70 +352,82 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 
 		const candidate = data.candidates[0];
 		let content = candidate.content.parts[0].text;
+		const finishReason = candidate.finishReason;
 
-		// Check if response was truncated
-		if (candidate.finishReason === 'MAX_TOKENS') {
-			console.warn('Gemini response was truncated due to MAX_TOKENS');
-			throw new Error('Quiz generation incomplete: Response was too long and got truncated. Try generating fewer questions or increase max tokens in settings.');
+		// Log finish reason for debugging
+		this.logger?.log('Gemini finishReason:', finishReason);
+		this.logger?.log('Response length:', content.length, 'characters');
+
+		// Check if response was truncated or incomplete
+		if (finishReason === 'MAX_TOKENS' || finishReason === 'LENGTH') {
+			console.warn(`Gemini response was truncated. Finish reason: ${finishReason}`);
+			throw new Error(`Quiz generation incomplete: Response was too long (finish reason: ${finishReason}). Try generating fewer questions or increase max tokens in settings.`);
+		}
+
+		if (finishReason !== 'STOP' && finishReason !== 'FINISH_REASON_UNSPECIFIED') {
+			console.warn(`Unexpected finish reason: ${finishReason}`);
 		}
 
 		// Log the raw response for debugging
-		console.debug('Raw Gemini response:', content.substring(0, 500) + '...');			// Remove markdown code blocks if present (e.g., ```json ... ```)
+		this.logger?.debug('Raw Gemini response (first 500 chars):', content.substring(0, 500) + '...');
+		this.logger?.debug('Raw Gemini response (last 200 chars):', '...' + content.substring(Math.max(0, content.length - 200)));
+
+		// Remove markdown code blocks if present (e.g., ```json ... ```)
+		content = content.trim();
+		if (content.startsWith('```')) {
+			// Remove opening ```json or ```
+			content = content.replace(/^```(?:json)?\s*\n/, '');
+			// Remove closing ```
+			content = content.replace(/\n```\s*$/, '');
 			content = content.trim();
-			if (content.startsWith('```')) {
-				// Remove opening ```json or ```
-				content = content.replace(/^```(?:json)?\s*\n/, '');
-				// Remove closing ```
-				content = content.replace(/\n```\s*$/, '');
-				content = content.trim();
-			}
-
-			// Try to parse JSON response
-			let parsed;
-			try {
-				parsed = JSON.parse(content as string);
-			} catch (parseError) {
-				console.error('JSON parse error:', parseError);
-				console.error('Failed content:', content);
-				throw new Error(`Invalid JSON response from Gemini. The model returned malformed JSON. Try again or check the console for details.`);
-			}
-
-			// Validate response structure
-			if (!parsed.questions || !Array.isArray(parsed.questions)) {
-				console.error('Invalid response structure:', parsed);
-				throw new Error('Gemini response missing "questions" array');
-			}
-
-			// Add IDs to questions
-			const questions: QuizQuestion[] = parsed.questions.map((q: ParsedAIQuestion) => ({
-				id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
-				type: q.type,
-				prompt: q.prompt,
-				options: q.options,
-				correctAnswer: q.correctAnswer,
-				explanation: q.explanation
-			}));
-
-			return {
-				questions,
-				metadata: {
-					model: model,
-					tokensUsed: data.usageMetadata?.totalTokenCount
-				}
-			};
-		} catch (error) {
-			console.error('Gemini API error:', error);
-			console.error('Full error details:', JSON.stringify(error, null, 2));
-			
-			// Try to extract more details from the error
-			let errorMessage = error.message || 'Unknown error';
-			if (error.response) {
-				console.error('Response body:', error.response);
-				errorMessage += ` - Response: ${JSON.stringify(error.response)}`;
-			}
-			
-			throw new Error(`Failed to generate quiz with Gemini: ${errorMessage}`);
 		}
+
+		// Validate JSON structure before parsing
+		if (!content.startsWith('{') || !content.endsWith('}')) {
+			console.error('Content does not look like complete JSON');
+			console.error('Starts with:', content.substring(0, 50));
+			console.error('Ends with:', content.substring(Math.max(0, content.length - 50)));
+			throw new Error(`Response appears incomplete (doesn't start/end with braces). This usually means the response was truncated. Try generating fewer questions or increase max tokens.`);
+		}
+
+		// Try to parse JSON response
+		let parsed;
+		try {
+			parsed = JSON.parse(content as string);
+		} catch (parseError) {
+			console.error('JSON parse error:', parseError);
+			console.error('Failed content length:', content.length);
+			console.error('Failed content (first 500 chars):', content.substring(0, 500));
+			console.error('Failed content (last 200 chars):', content.substring(Math.max(0, content.length - 200)));
+			
+			// Provide more helpful error message
+			const errorMsg = parseError instanceof Error ? parseError.message : 'Unknown parse error';
+			throw new Error(`Invalid JSON response from Gemini (${errorMsg}). The response was likely truncated. Try generating fewer questions (current settings requested questions may be too many) or increase max tokens in settings.`);
+		}
+
+		// Validate response structure
+		if (!parsed.questions || !Array.isArray(parsed.questions)) {
+			console.error('Invalid response structure:', parsed);
+			throw new Error('Gemini response missing "questions" array');
+		}
+
+		// Add IDs to questions
+		const questions: QuizQuestion[] = parsed.questions.map((q: ParsedAIQuestion) => ({
+			id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+			type: q.type,
+			prompt: q.prompt,
+			options: q.options,
+			correctAnswer: q.correctAnswer,
+			explanation: q.explanation
+		}));
+
+		return {
+			questions,
+			metadata: {
+				model: model,
+				tokensUsed: data.usageMetadata?.totalTokenCount
+			}
+		};
 	}
 
 	/**

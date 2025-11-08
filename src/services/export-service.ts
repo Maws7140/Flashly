@@ -300,8 +300,8 @@ export class ExportService {
 		const exportFolder = 'flashly-exports';
 		try {
 			await vault.adapter.mkdir(exportFolder);
-		} catch (e) {
-			// Folder might already exist
+		} catch {
+			// Folder might already exist, ignore error
 		}
 
 		// Generate full path
@@ -323,8 +323,8 @@ export class ExportService {
 		const exportFolder = 'flashly-exports';
 		try {
 			await vault.adapter.mkdir(exportFolder);
-		} catch (e) {
-			// Folder might already exist
+		} catch {
+			// Folder might already exist, ignore error
 		}
 
 		// Generate full path
