@@ -24,9 +24,9 @@ export class QuizView extends ItemView {
 	private debounceTimer: number | null = null;
 
 	// Learn mode state
-	private learnModeEnabled: boolean = false;
+	private learnModeEnabled = false;
 	private questionQueue: number[] = [];
-	private currentQueuePosition: number = 0;
+	private currentQueuePosition = 0;
 	private answeredQuestions: Set<number> = new Set();
 
 	constructor(leaf: WorkspaceLeaf, plugin: FlashlyPlugin) {

@@ -28,6 +28,7 @@
       "@typescript-eslint/no-unnecessary-type-constraint": "error",
       "@typescript-eslint/no-unsafe-argument": "error",
       "@typescript-eslint/no-base-to-string": "error",
+      "no-console": ["error", { "allow": ["warn", "error", "debug"] }],
       "no-restricted-properties": ["error", {
         "property": "innerHTML",
         "message": "Do not write to DOM directly using innerHTML property"
@@ -35,5 +36,15 @@
         "property": "outerHTML",
         "message": "Do not write to DOM directly using outerHTML property"
       }]
-    }
+    },
+    "overrides": [
+      {
+        "files": ["__tests__/**/*.ts", "__mocks__/**/*.ts"],
+        "rules": {
+          "@typescript-eslint/no-explicit-any": "off",
+          "@typescript-eslint/no-unsafe-argument": "off",
+          "@typescript-eslint/await-thenable": "off"
+        }
+      }
+    ]
   }

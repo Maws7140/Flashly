@@ -28,7 +28,7 @@ export class Logger {
 	 */
 	log(...args: unknown[]): void {
 		if (this.isDebugEnabled) {
-			console.log('[Flashly]', ...args);
+			console.debug('[Flashly]', ...args);
 		}
 	}
 

@@ -29,7 +29,7 @@ global.window = {
 } as any;
 
 // Utility functions for tests
-export function createMockTFile(path: string, content: string = ''): any {
+export function createMockTFile(path: string, content = ''): any {
   return {
     path,
     basename: path.split('/').pop()?.replace(/\.[^/.]+$/, '') || '',
