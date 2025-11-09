@@ -64,7 +64,7 @@ export class ExportService {
 					filePath = await this.exportMarkdown(cards, options);
 					break;
 				default:
-					throw new Error(`Unsupported export format: ${options.format}`);
+					return this.handleUnsupportedFormat(options.format);
 			}
 
 			// Step 3: Record success
@@ -337,5 +337,9 @@ export class ExportService {
 		await vault.adapter.writeBinary(filePath, arrayBuffer);
 
 		return filePath;
+	}
+
+	private handleUnsupportedFormat(format: never): never {
+		throw new Error(`Unsupported export format: ${String(format)}`);
 	}
 }

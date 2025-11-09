@@ -35,7 +35,7 @@ class GenerateQuizModal extends Modal {
 			.setName('Quiz title')
 			.setDesc('Give your quiz a name')
 			.addText(text => {
-				text.setPlaceholder('My Quiz');
+				text.setPlaceholder('My quiz');
 				text.inputEl.id = 'quiz-title-input';
 			});
 

@@ -66,10 +66,14 @@ export class AIQuizGenerator {
 				response = await this.callCustomAPI(prompt);
 				break;
 			default:
-				throw new Error(`Unknown AI provider: ${this.settings.provider}`);
+				return this.handleUnknownProvider(this.settings.provider);
 		}
 
 		return response.questions;
+	}
+
+	private handleUnknownProvider(provider: never): never {
+		throw new Error(`Unknown AI provider: ${String(provider)}`);
 	}
 
 	/**

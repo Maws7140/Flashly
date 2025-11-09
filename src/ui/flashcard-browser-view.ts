@@ -24,6 +24,7 @@ export class FlashcardBrowserView extends ItemView {
   private deckGridContainer: HTMLElement | null = null;
   private isRendering = false;
   private needsRerender = false;
+  private activeLeafRefreshTimeout: number | null = null;
 
   constructor(leaf: WorkspaceLeaf, plugin: FlashlyPlugin) {
     super(leaf);
@@ -63,7 +64,14 @@ export class FlashcardBrowserView extends ItemView {
     this.registerEvent(
       this.app.workspace.on('active-leaf-change', (leaf) => {
         if (leaf && leaf.view instanceof FlashcardBrowserView && leaf.view === this) {
-          this.refreshCards();
+          if (this.activeLeafRefreshTimeout !== null) {
+            window.clearTimeout(this.activeLeafRefreshTimeout);
+          }
+          // Defer refresh so the original click handler can complete
+          this.activeLeafRefreshTimeout = window.setTimeout(() => {
+            this.activeLeafRefreshTimeout = null;
+            this.refreshCards();
+          }, 0);
         }
       })
     );
@@ -89,6 +97,10 @@ export class FlashcardBrowserView extends ItemView {
     if (this.animationTimeoutId !== null) {
       window.clearTimeout(this.animationTimeoutId);
       this.animationTimeoutId = null;
+    }
+    if (this.activeLeafRefreshTimeout !== null) {
+      window.clearTimeout(this.activeLeafRefreshTimeout);
+      this.activeLeafRefreshTimeout = null;
     }
     // Unload component to clean up
     this.component.unload();

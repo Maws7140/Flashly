@@ -7,7 +7,7 @@ import { parseSimpleFlashcards } from '../parser/simple-parser';
 export function registerScanPoCCommand(app: App, addCommand: (command: Command) => Command) {
 	addCommand({
 		id: 'flashly-scan-poc',
-		name: 'Scan Active Note (Phase 0 PoC)',
+		name: 'Scan Active Note (Phase 0 poC)',
 		callback: async () => {
 			// Get active markdown view
 			const view = app.workspace.getActiveViewOfType(MarkdownView);

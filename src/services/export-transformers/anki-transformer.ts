@@ -1,6 +1,7 @@
 import { FlashlyCard } from '../../models/card';
 import { ExportTransformer, ExportOptions, SM2Data } from './base-transformer';
 import { convertMarkdownToHTML, stripMarkdownFormatting } from '../../utils/markdown-to-html';
+import { State } from 'ts-fsrs';
 
 export interface AnkiNote {
   front: string;
@@ -109,7 +110,7 @@ export class AnkiTransformer implements ExportTransformer<AnkiCard[]> {
    * Convert FSRS scheduling data to SM-2 format for Anki
    */
   convertToSM2(card: FlashlyCard): SM2Data | null {
-    if (!card.fsrsCard || card.fsrsCard.state === 0) { // 0 = State.New
+    if (!card.fsrsCard || card.fsrsCard.state === State.New) {
       return null;
     }
 
