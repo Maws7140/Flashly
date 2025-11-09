@@ -42,7 +42,7 @@ export class ReviewModal extends Modal {
 		this.component.load();
 
 		this.buildLayout();
-		this.render();
+		void this.render();
 
 		if (this.options.enableKeyboardShortcuts) {
 			window.addEventListener('keydown', this.boundKeydown);
@@ -218,7 +218,7 @@ export class ReviewModal extends Modal {
 		}
 
 		await this.viewModel.rateCard(rating);
-		this.render();
+		void this.render();
 	}
 
 	private handleKeydown(evt: KeyboardEvent): void {

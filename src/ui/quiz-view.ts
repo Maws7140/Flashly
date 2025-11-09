@@ -241,7 +241,7 @@ export class QuizView extends ItemView {
 			if (!question.checked) {
 				// Show "Check Answer" button
 				const checkBtn = nav.createEl('button', {
-					text: 'Check Answer',
+					text: 'Check answer',
 					cls: 'quiz-nav-btn quiz-nav-primary'
 				});
 
@@ -270,7 +270,7 @@ export class QuizView extends ItemView {
 			}
 
 			const nextBtn = nav.createEl('button', {
-				text: this.currentQuestionIndex < this.currentQuiz.totalQuestions - 1 ? 'Next →' : 'Finish Quiz',
+				text: this.currentQuestionIndex < this.currentQuiz.totalQuestions - 1 ? 'Next →' : 'Finish quiz',
 				cls: 'quiz-nav-btn quiz-nav-primary'
 			});
 
@@ -291,16 +291,16 @@ export class QuizView extends ItemView {
 		keyboardHints.createEl('span', { text: 'Shortcuts: ', cls: 'quiz-hint-label' });
 
 		const hints = [
-			'←/→ Navigate',
-			'Enter/Space Next',
-			'Esc Close'
+			'←/→ navigate',
+			'Enter/space next',
+			'Esc close'
 		];
 
 		if (question.type === 'multiple-choice' || question.type === 'true-false') {
 			if (question.type === 'multiple-choice') {
-				hints.push('1-4 Select');
+				hints.push('1-4 select');
 			} else {
-				hints.push('T/F Select');
+				hints.push('T/F select');
 			}
 		}
 
@@ -681,9 +681,9 @@ export class QuizView extends ItemView {
 	private getQuestionTypeLabel(type: string): string {
 		switch (type) {
 			case 'multiple-choice':
-				return 'Multiple Choice';
+				return 'Multiple choice';
 			case 'fill-blank':
-				return 'Fill in the Blank';
+				return 'Fill in the blank';
 			case 'true-false':
 				return 'True/False';
 			default:

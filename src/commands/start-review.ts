@@ -84,7 +84,7 @@ export class StartReviewCommand {
 
 	private async resolveDeckSelection(
 		settings: FlashlySettings,
-		preselectedDecks?: string[] | undefined
+		preselectedDecks?: string[]
 	): Promise<string[] | undefined | null> {
 		if (preselectedDecks && preselectedDecks.length > 0) {
 			return preselectedDecks;

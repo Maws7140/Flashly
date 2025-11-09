@@ -32,8 +32,8 @@ export class ExportModal extends Modal {
 			.setDesc('Choose the format for exported flashcards')
 			.addDropdown(dropdown => {
 				dropdown
-					.addOption('csv', 'CSV (Generic)')
-					.addOption('csv-quizlet', 'CSV (Quizlet)')
+					.addOption('csv', 'CSV (generic)')
+					.addOption('csv-quizlet', 'CSV (Quizlet format)')
 					.addOption('anki', 'Anki (.apkg)')
 					.addOption('json', 'JSON')
 					.addOption('markdown', 'Markdown')

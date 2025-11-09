@@ -70,10 +70,10 @@ export class QuizHistoryView extends ItemView {
 
 		// Get all quizzes
 		const allQuizzes = this.plugin.quizStorage.getAllQuizzes();
-		this.plugin.logger.debug('Quiz History - All quizzes:', allQuizzes.length);
-		this.plugin.logger.debug('Quiz History - Quizzes:', allQuizzes);
+		this.plugin.logger.debug('Quiz history - all quizzes:', allQuizzes.length);
+		this.plugin.logger.debug('Quiz history - quizzes:', allQuizzes);
 		const completedQuizzes = allQuizzes.filter(q => q.completed);
-		this.plugin.logger.debug('Quiz History - Completed quizzes:', completedQuizzes.length);
+		this.plugin.logger.debug('Quiz history - completed quizzes:', completedQuizzes.length);
 
 		if (completedQuizzes.length === 0) {
 			this.renderEmptyState(container);
@@ -223,7 +223,7 @@ export class QuizHistoryView extends ItemView {
 			// Add learn mode badge if applicable
 			if (quiz.config.learnMode) {
 				const learnBadge = titleSection.createSpan({ cls: 'quiz-card-learn-mode-badge' });
-				learnBadge.setText('Learn Mode');
+				learnBadge.setText('Learn mode');
 			}
 
 			const scoreEl = cardHeader.createDiv({ cls: 'quiz-card-score' });
@@ -420,7 +420,7 @@ export class QuizHistoryView extends ItemView {
 		let md = `# ${quiz.title}\n\n`;
 		md += `**Completed:** ${completedDate}\n`;
 		md += `**Score:** ${scorePercent}% (${quiz.correctCount}/${quiz.totalQuestions} correct)\n`;
-		md += `**Generation Method:** ${quiz.generationMethod === 'ai-generated' ? 'AI-Generated' : 'Traditional'}\n\n`;
+		md += `**Generation method:** ${quiz.generationMethod === 'ai-generated' ? 'AI-generated' : 'Traditional'}\n\n`;
 		md += `---\n\n`;
 
 		quiz.questions.forEach((question, index) => {
@@ -439,8 +439,8 @@ export class QuizHistoryView extends ItemView {
 				md += `\n`;
 			}
 
-			md += `**Your Answer:** ${this.formatAnswerForExport(question, question.userAnswer)}\n`;
-			md += `**Correct Answer:** ${this.formatAnswerForExport(question, question.correctAnswer)}\n`;
+			md += `**Your answer:** ${this.formatAnswerForExport(question, question.userAnswer)}\n`;
+			md += `**Correct answer:** ${this.formatAnswerForExport(question, question.correctAnswer)}\n`;
 			md += `**Result:** ${question.correct ? '✅ Correct' : '❌ Incorrect'}\n`;
 
 			if (question.explanation) {
@@ -451,12 +451,12 @@ export class QuizHistoryView extends ItemView {
 		});
 
 		md += `## Summary\n\n`;
-		md += `- **Total Questions:** ${quiz.totalQuestions}\n`;
-		md += `- **Correct Answers:** ${quiz.correctCount}\n`;
-		md += `- **Incorrect Answers:** ${quiz.totalQuestions - (quiz.correctCount || 0)}\n`;
-		md += `- **Final Score:** ${scorePercent}%\n`;
+		md += `- **Total questions:** ${quiz.totalQuestions}\n`;
+		md += `- **Correct answers:** ${quiz.correctCount}\n`;
+		md += `- **Incorrect answers:** ${quiz.totalQuestions - (quiz.correctCount || 0)}\n`;
+		md += `- **Final score:** ${scorePercent}%\n`;
 		md += `\n---\n\n`;
-		md += `*Exported from Flashly - Spaced Repetition Flashcards for Obsidian*\n`;
+		md += `*Exported from Flashly - spaced repetition flashcards for Obsidian*\n`;
 
 		return md;
 	}

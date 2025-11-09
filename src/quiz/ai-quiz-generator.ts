@@ -5,7 +5,7 @@
 
 import { FlashlyCard } from '../models/card';
 import { QuizQuestion, QuizConfig, AIQuizSettings, AIQuizGenerationResponse, QuizQuestionType } from '../models/quiz';
-import { requestUrl } from 'obsidian';
+import { requestUrl, type RequestUrlResponse } from 'obsidian';
 import type { Logger } from '../utils/logger';
 
 interface ParsedAIQuestion {
@@ -293,16 +293,25 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 					}
 				})
 			});
-		} catch (requestError: any) {
+		} catch (requestError: unknown) {
+			const error = requestError as Partial<RequestUrlResponse> & {
+				status?: number;
+				text?: string;
+				json?: unknown;
+			};
+
 			// Handle HTTP errors (400, 401, 403, etc.)
-			console.error('Gemini API request failed:', requestError);
-			console.error('Error status:', requestError.status);
+			console.error('Gemini API request failed:', error);
+			console.error('Error status:', error.status);
 			
 			// Try to extract error message from response
 			let errorDetails = 'Unknown error';
 			try {
-				if (requestError.json) {
-					const errorData = requestError.json;
+				if (error.json) {
+					const errorData = error.json as Record<string, unknown> & {
+						error?: { message?: string };
+						message?: string;
+					};
 					console.error('Gemini error response:', JSON.stringify(errorData, null, 2));
 					
 					// Gemini error format: { error: { code, message, status } }
@@ -313,8 +322,8 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 					} else {
 						errorDetails = JSON.stringify(errorData);
 					}
-				} else if (requestError.text) {
-					errorDetails = requestError.text;
+				} else if (error.text) {
+					errorDetails = error.text;
 					console.error('Gemini error text:', errorDetails);
 				}
 			} catch (parseError) {
@@ -322,14 +331,14 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 			}
 
 			// Provide helpful error messages based on status code
-			if (requestError.status === 400) {
+			if (error.status === 400) {
 				throw new Error(`Gemini API returned 400 Bad Request: ${errorDetails}. Common causes: invalid model name (check that '${model}' exists), invalid parameters, or malformed request.`);
-			} else if (requestError.status === 401 || requestError.status === 403) {
-				throw new Error(`Gemini API authentication failed (${requestError.status}): ${errorDetails}. Check your API key in settings.`);
-			} else if (requestError.status === 429) {
+			} else if (error.status === 401 || error.status === 403) {
+				throw new Error(`Gemini API authentication failed (${error.status}): ${errorDetails}. Check your API key in settings.`);
+			} else if (error.status === 429) {
 				throw new Error(`Gemini API rate limit exceeded: ${errorDetails}. Please wait and try again.`);
 			} else {
-				throw new Error(`Gemini API request failed (status ${requestError.status}): ${errorDetails}`);
+				throw new Error(`Gemini API request failed (status ${error.status ?? 'unknown'}): ${errorDetails}`);
 			}
 		}
 

@@ -448,11 +448,11 @@ export class StatisticsView extends ItemView {
 	private formatQuestionType(type: string): string {
 		switch (type) {
 			case 'multiple-choice':
-				return 'Multiple Choice';
+				return 'Multiple choice';
 			case 'fill-blank':
-				return 'Fill in the Blank';
+				return 'Fill in the blank';
 			case 'true-false':
-				return 'True/False';
+				return 'True/false';
 			default:
 				return type;
 		}

@@ -128,9 +128,9 @@ export class FlashlySettingTab extends PluginSettingTab {
 				.setName('Deck name priority')
 				.setDesc('Order to determine deck name: frontmatter, title, subtags')
 				.addDropdown(dropdown => dropdown
-					.addOption('frontmatter,title,subtags', 'Frontmatter → Title → Subtags')
-					.addOption('title,frontmatter,subtags', 'Title → Frontmatter → Subtags')
-					.addOption('frontmatter,subtags,title', 'Frontmatter → Subtags → Title')
+					.addOption('frontmatter,title,subtags', 'Frontmatter → title → subtags')
+					.addOption('title,frontmatter,subtags', 'Title → frontmatter → subtags')
+					.addOption('frontmatter,subtags,title', 'Frontmatter → subtags → title')
 					.setValue(this.plugin.settings.parser.header.deckNamePriority.join(','))
 					.onChange(async (value) => {
 						this.plugin.settings.parser.header.deckNamePriority = 
@@ -280,9 +280,9 @@ export class FlashlySettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Deck filter')
-			.setDesc('Only review specific decks (comma-separated, leave blank for all decks)')
-			.addText(text => {
-				text.setPlaceholder('Biology, Chemistry');
+				.setDesc('Only review specific decks (comma-separated, leave blank for all decks)')
+				.addText(text => {
+					text.setPlaceholder('Biology, chemistry');
 				text.setValue(this.plugin.settings.review.deckFilter.join(', '));
 				text.onChange(async (value) => {
 					this.plugin.settings.review.deckFilter = value
@@ -295,7 +295,7 @@ export class FlashlySettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Keyboard shortcuts')
-			.setDesc('Enable keyboard controls (Space, 1-4, Esc) in review sessions')
+				.setDesc('Enable keyboard controls (space, 1-4, Esc) in review sessions')
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.review.enableKeyboardShortcuts)
 				.onChange(async (value) => {

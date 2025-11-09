@@ -226,7 +226,7 @@ export class FlashcardBrowserView extends ItemView {
     // Scan button
     const scanBtn = headerActions.createEl('button', {
       cls: 'deck-header-btn deck-scan-btn',
-      attr: { 'aria-label': 'Scan for Flashcards' },
+      attr: { 'aria-label': 'Scan for flashcards' },
     });
     const scanIcon = scanBtn.createSpan({ cls: 'deck-btn-icon' });
     setIcon(scanIcon, 'search');
@@ -682,12 +682,12 @@ export class FlashcardBrowserView extends ItemView {
     }
 
     if (!file) {
-      console.error('Flashly: File not found in vault:', card.source.file);
+      console.error('Flashly: file not found in vault:', card.source.file);
       new Notice(`Could not find file: ${card.source.file}\n\nThe file may have been moved, renamed, or deleted.\nIf you recently changed your vault structure, try rescanning for flashcards.`);
       return;
     }
     if (!(file instanceof TFile)) {
-      console.error('Flashly: Path is not a file:', card.source.file, 'Type:', file.constructor.name);
+      console.error('Flashly: path is not a file:', card.source.file, 'Type:', file.constructor.name);
       new Notice(`Path is a folder, not a file: ${card.source.file}`);
       return;
     }
@@ -730,7 +730,7 @@ export class FlashcardBrowserView extends ItemView {
     try {
       await command.startReview([deckName]);
     } catch (error) {
-      console.error('Flashly: Failed to start review session for deck', deckName, error);
+      console.error('Flashly: failed to start review session for deck', deckName, error);
       new Notice('Failed to start review session. Check console for details.');
     }
   }

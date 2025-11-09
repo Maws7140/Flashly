@@ -184,10 +184,10 @@ export function getTutorialSteps(): TutorialStep[] {
 			content: `
 				<p>There are three ways to create flashcards:</p>
 				
-				<p><strong>1. Q&A Format:</strong> <code>Question::Answer</code></p>
+				<p><strong>1. Q&A format:</strong> <code>Question::Answer</code></p>
 				<p style="margin-left: 20px; font-style: italic;">What is the capital of France?::Paris</p>
 				
-				<p><strong>2. Cloze Deletions:</strong> Use <code>{curly braces}</code></p>
+				<p><strong>2. Cloze deletions:</strong> Use <code>{curly braces}</code></p>
 				<p style="margin-left: 20px; font-style: italic;">The capital of France is {Paris}.</p>
 				
 				<p><strong>3. Header-based:</strong> Questions under tagged headers</p>
@@ -202,13 +202,13 @@ export function getTutorialSteps(): TutorialStep[] {
 				<p>Once you've created flashcards, run the scan command:</p>
 				<ol>
 					<li>Press <kbd>Ctrl/Cmd + P</kbd></li>
-					<li>Type "Flashly: Scan vault for flashcards"</li>
+					<li>Type "Flashly: scan vault for flashcards"</li>
 					<li>Press <kbd>Enter</kbd></li>
 				</ol>
 				
 				<p>Flashly will find all flashcards in your notes.</p>
 				
-				<p><strong>Tip:</strong> You can also use the ribbon icon to open the Flashcard Browser, which automatically scans.</p>
+				<p><strong>Tip:</strong> You can also use the ribbon icon to open the flashcard browser, which automatically scans.</p>
 			`
 		},
 		{
@@ -217,14 +217,14 @@ export function getTutorialSteps(): TutorialStep[] {
 				<p>To start reviewing:</p>
 				<ul>
 					<li>Press <kbd>Ctrl/Cmd + P</kbd></li>
-					<li>Type "Flashly: Start review session"</li>
+					<li>Type "Flashly: start review session"</li>
 					<li>Or click the status bar showing due cards</li>
 				</ul>
 				
 				<p><strong>During review:</strong></p>
 				<ul>
 					<li><kbd>Spacebar</kbd>: Show answer</li>
-					<li><kbd>1-4</kbd>: Rate your recall (1=Again, 4=Easy)</li>
+					<li><kbd>1-4</kbd>: Rate your recall (1=again, 4=easy)</li>
 					<li><kbd>Esc</kbd>: Exit review</li>
 				</ul>
 				
@@ -234,7 +234,7 @@ export function getTutorialSteps(): TutorialStep[] {
 		{
 			title: 'Flashcard browser & more',
 			content: `
-				<p>The Flashcard Browser lets you:</p>
+				<p>The flashcard browser lets you:</p>
 				<ul>
 					<li>View all your cards and decks</li>
 					<li>Edit or delete cards</li>
