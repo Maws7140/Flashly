@@ -1590,14 +1590,14 @@
 /* ========== STATISTICS VIEW ========== */
 
 .flashly-statistics-view {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
   padding: 20px;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
   background: var(--background-primary);
-  box-sizing: border-box;
+  box-sizing: border-box !important;
 }
 
 /* Stats Header */
@@ -3028,13 +3028,13 @@
 /* ========== QUIZ HISTORY VIEW ========== */
 
 .flashly-quiz-history-view {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
   padding: 20px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  box-sizing: border-box;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
 }
 
 .quiz-history-header {
