@@ -77,15 +77,66 @@ export class QuizView extends ItemView {
 		this.learnModeEnabled = quiz.config.learnMode ?? false;
 
 		if (this.learnModeEnabled) {
-			// Initialize question queue with all question indices
-			this.questionQueue = Array.from({ length: quiz.questions.length }, (_, i) => i);
-			this.currentQueuePosition = 0;
-			this.answeredQuestions.clear();
+			// Check if resuming a saved learn mode quiz
+			if (quiz.learnModeStats?.savedQueue && quiz.learnModeStats?.savedQueuePosition !== undefined) {
+				// Resume from saved state
+				this.questionQueue = [...quiz.learnModeStats.savedQueue];
+				this.currentQueuePosition = quiz.learnModeStats.savedQueuePosition;
+				this.answeredQuestions = new Set(quiz.learnModeStats.savedAnsweredQuestions || []);
+			} else {
+				// Initialize question queue with all question indices
+				this.questionQueue = Array.from({ length: quiz.questions.length }, (_, i) => i);
+				this.currentQueuePosition = 0;
+				this.answeredQuestions.clear();
+			}
 		} else {
-			this.currentQuestionIndex = 0;
+			// Resume from saved position if available
+			this.currentQuestionIndex = quiz.currentQuestionIndex ?? 0;
 		}
 
 		void this.render();
+	}
+
+	/**
+	 * Auto-save quiz progress
+	 */
+	private async saveQuizProgress(): Promise<void> {
+		if (!this.currentQuiz) return;
+
+		// Don't save if quiz is already completed
+		if (this.currentQuiz.completed) return;
+
+		try {
+			// Update last accessed timestamp
+			this.currentQuiz.lastAccessed = new Date();
+
+			// Update current state
+			this.currentQuiz.state = 'in-progress';
+
+			// Save current position
+			this.currentQuiz.currentQuestionIndex = this.currentQuestionIndex;
+
+			// Save learn mode state if applicable
+			if (this.learnModeEnabled) {
+				if (!this.currentQuiz.learnModeStats) {
+					this.currentQuiz.learnModeStats = {
+						totalAttempts: 0,
+						questionsRequeued: 0,
+						firstPassCorrect: 0
+					};
+				}
+				this.currentQuiz.learnModeStats.savedQueue = [...this.questionQueue];
+				this.currentQuiz.learnModeStats.savedQueuePosition = this.currentQueuePosition;
+				this.currentQuiz.learnModeStats.savedAnsweredQuestions = Array.from(this.answeredQuestions);
+			}
+
+			// Save to storage
+			await this.plugin.quizStorage.updateQuiz(this.currentQuiz);
+			this.plugin.logger.debug('Quiz progress saved:', this.currentQuiz.id);
+		} catch (error) {
+			console.error('Failed to save quiz progress:', error);
+			// Don't show notice to avoid disrupting the user experience
+		}
 	}
 
 	/**
@@ -265,6 +316,7 @@ export class QuizView extends ItemView {
 				const prevBtn = nav.createEl('button', { text: '← previous', cls: 'quiz-nav-btn' });
 				prevBtn.addEventListener('click', () => {
 					this.currentQuestionIndex--;
+					void this.saveQuizProgress();
 					void this.render();
 				});
 			}
@@ -279,6 +331,7 @@ export class QuizView extends ItemView {
 
 				if (this.currentQuestionIndex < this.currentQuiz.totalQuestions - 1) {
 					this.currentQuestionIndex++;
+					void this.saveQuizProgress();
 					void this.render();
 				} else {
 					void this.finishQuiz();
@@ -334,6 +387,7 @@ export class QuizView extends ItemView {
 
 			optionBtn.addEventListener('click', () => {
 				question.userAnswer = index;
+				void this.saveQuizProgress();
 				void this.render();
 			});
 		}
@@ -354,14 +408,19 @@ export class QuizView extends ItemView {
 		// Debounce input to avoid excessive state updates
 		input.addEventListener('input', (e) => {
 			const value = (e.target as HTMLInputElement).value;
-			
+
 			// Clear existing timer
 			if (this.debounceTimer !== null) {
 				window.clearTimeout(this.debounceTimer);
 			}
-			
+
 			// Update immediately in question object but don't re-render
 			question.userAnswer = value;
+
+			// Debounced save (save after 500ms of no typing)
+			this.debounceTimer = window.setTimeout(() => {
+				void this.saveQuizProgress();
+			}, 500);
 		});
 
 		// Auto-focus
@@ -390,6 +449,7 @@ export class QuizView extends ItemView {
 
 			optionBtn.addEventListener('click', () => {
 				question.userAnswer = answerValue;
+				void this.saveQuizProgress();
 				void this.render();
 			});
 		}
@@ -421,6 +481,9 @@ export class QuizView extends ItemView {
 			this.questionQueue.push(qIndex);
 		}
 
+		// Save progress
+		await this.saveQuizProgress();
+
 		// Re-render to show feedback
 		await this.render();
 	}
@@ -445,6 +508,9 @@ export class QuizView extends ItemView {
 				nextQuestion.userAnswer = undefined;
 			}
 
+			// Save progress
+			void this.saveQuizProgress();
+
 			void this.render();
 		}
 	}
@@ -465,6 +531,7 @@ export class QuizView extends ItemView {
 		this.currentQuiz.completed = new Date();
 		this.currentQuiz.score = 100; // Learn mode always ends at 100%
 		this.currentQuiz.correctCount = totalQuestions;
+		this.currentQuiz.state = 'completed';
 
 		// Store learn mode stats
 		this.currentQuiz.learnModeStats = {
@@ -559,6 +626,7 @@ export class QuizView extends ItemView {
 		this.currentQuiz.score = score;
 		this.currentQuiz.correctCount = correctCount;
 		this.currentQuiz.completed = new Date();
+		this.currentQuiz.state = 'completed';
 
 		// Save quiz
 		const quizStorage = this.plugin.quizStorage;
@@ -718,6 +786,7 @@ export class QuizView extends ItemView {
 			evt.preventDefault();
 			if (this.currentQuestionIndex < this.currentQuiz.totalQuestions - 1) {
 				this.currentQuestionIndex++;
+				void this.saveQuizProgress();
 				void this.render();
 			} else {
 				void this.finishQuiz();
@@ -730,6 +799,7 @@ export class QuizView extends ItemView {
 			evt.preventDefault();
 			if (this.currentQuestionIndex > 0) {
 				this.currentQuestionIndex--;
+				void this.saveQuizProgress();
 				void this.render();
 			}
 			return;
@@ -740,6 +810,7 @@ export class QuizView extends ItemView {
 			evt.preventDefault();
 			if (this.currentQuestionIndex < this.currentQuiz.totalQuestions - 1) {
 				this.currentQuestionIndex++;
+				void this.saveQuizProgress();
 				void this.render();
 			}
 			return;
@@ -751,6 +822,7 @@ export class QuizView extends ItemView {
 			if (num >= 1 && num <= question.options.length) {
 				evt.preventDefault();
 				question.userAnswer = num - 1;
+				void this.saveQuizProgress();
 				void this.render();
 				return;
 			}
@@ -761,12 +833,14 @@ export class QuizView extends ItemView {
 			if (evt.key.toLowerCase() === 't') {
 				evt.preventDefault();
 				question.userAnswer = 'true';
+				void this.saveQuizProgress();
 				void this.render();
 				return;
 			}
 			if (evt.key.toLowerCase() === 'f') {
 				evt.preventDefault();
 				question.userAnswer = 'false';
+				void this.saveQuizProgress();
 				void this.render();
 				return;
 			}
