@@ -23,6 +23,7 @@ export class QuizHistoryView extends ItemView {
 	plugin: FlashlyPlugin;
 	private sortBy: 'date' | 'score' | 'title' = 'date';
 	private filterMethod: 'all' | 'traditional' | 'ai' = 'all';
+	private filterState: 'all' | 'completed' | 'in-progress' = 'all';
 	private renderQueue: Promise<void> = Promise.resolve();
 
 	constructor(leaf: WorkspaceLeaf, plugin: FlashlyPlugin) {
@@ -72,10 +73,13 @@ export class QuizHistoryView extends ItemView {
 		const allQuizzes = this.plugin.quizStorage.getAllQuizzes();
 		this.plugin.logger.debug('Quiz history - all quizzes:', allQuizzes.length);
 		this.plugin.logger.debug('Quiz history - quizzes:', allQuizzes);
-		const completedQuizzes = allQuizzes.filter(q => q.completed);
-		this.plugin.logger.debug('Quiz history - completed quizzes:', completedQuizzes.length);
 
-		if (completedQuizzes.length === 0) {
+		const completedQuizzes = allQuizzes.filter(q => q.completed);
+		const inProgressQuizzes = allQuizzes.filter(q => !q.completed);
+		this.plugin.logger.debug('Quiz history - completed quizzes:', completedQuizzes.length);
+		this.plugin.logger.debug('Quiz history - in-progress quizzes:', inProgressQuizzes.length);
+
+		if (allQuizzes.length === 0) {
 			this.renderEmptyState(container);
 			return;
 		}
@@ -83,10 +87,17 @@ export class QuizHistoryView extends ItemView {
 		// Filters and sorting
 		this.renderControls(container);
 
+		// Filter quizzes by state
+		let displayQuizzes = allQuizzes;
+		if (this.filterState === 'completed') {
+			displayQuizzes = completedQuizzes;
+		} else if (this.filterState === 'in-progress') {
+			displayQuizzes = inProgressQuizzes;
+		}
+
 		// Filter quizzes by method
-		let filteredQuizzes = completedQuizzes;
 		if (this.filterMethod !== 'all') {
-			filteredQuizzes = completedQuizzes.filter(q =>
+			displayQuizzes = displayQuizzes.filter(q =>
 				this.filterMethod === 'ai'
 					? q.generationMethod === 'ai-generated'
 					: q.generationMethod === 'traditional'
@@ -94,10 +105,12 @@ export class QuizHistoryView extends ItemView {
 		}
 
 		// Sort quizzes
-		const sortedQuizzes = this.sortQuizzes(filteredQuizzes);
+		const sortedQuizzes = this.sortQuizzes(displayQuizzes);
 
-		// Statistics summary
-		this.renderSummary(container, completedQuizzes);
+		// Statistics summary (only for completed quizzes)
+		if (completedQuizzes.length > 0) {
+			this.renderSummary(container, completedQuizzes);
+		}
 
 		// Quiz list
 		this.renderQuizList(container, sortedQuizzes);
@@ -126,6 +139,32 @@ export class QuizHistoryView extends ItemView {
 
 	private renderControls(container: HTMLElement): void {
 		const controls = container.createDiv({ cls: 'quiz-history-controls' });
+
+		// State filter dropdown
+		const stateContainer = controls.createDiv({ cls: 'quiz-history-control' });
+		stateContainer.createSpan({ text: 'Status: ', cls: 'quiz-history-control-label' });
+
+		const stateSelect = stateContainer.createEl('select', { cls: 'quiz-history-select' });
+		const stateOptions = [
+			{ value: 'all', label: 'All quizzes' },
+			{ value: 'completed', label: 'Completed only' },
+			{ value: 'in-progress', label: 'In progress only' }
+		];
+
+		stateOptions.forEach(opt => {
+			const option = stateSelect.createEl('option', {
+				text: opt.label,
+				value: opt.value
+			});
+			if (opt.value === this.filterState) {
+				option.selected = true;
+			}
+		});
+
+		stateSelect.addEventListener('change', (e) => {
+			this.filterState = (e.target as HTMLSelectElement).value as 'all' | 'completed' | 'in-progress';
+			this.queueRender();
+		});
 
 		// Sort dropdown
 		const sortContainer = controls.createDiv({ cls: 'quiz-history-control' });
@@ -211,6 +250,11 @@ export class QuizHistoryView extends ItemView {
 		quizzes.forEach(quiz => {
 			const quizCard = listContainer.createDiv({ cls: 'quiz-history-card' });
 
+			// Add class for in-progress quizzes
+			if (!quiz.completed) {
+				quizCard.addClass('quiz-card-in-progress');
+			}
+
 			// Header section
 			const cardHeader = quizCard.createDiv({ cls: 'quiz-card-header' });
 
@@ -220,6 +264,12 @@ export class QuizHistoryView extends ItemView {
 			const badge = titleSection.createSpan({ cls: 'quiz-card-badge' });
 			badge.setText(quiz.generationMethod === 'ai-generated' ? 'AI' : 'Traditional');
 
+			// Add in-progress badge if applicable
+			if (!quiz.completed) {
+				const progressBadge = titleSection.createSpan({ cls: 'quiz-card-in-progress-badge' });
+				progressBadge.setText('In progress');
+			}
+
 			// Add learn mode badge if applicable
 			if (quiz.config.learnMode) {
 				const learnBadge = titleSection.createSpan({ cls: 'quiz-card-learn-mode-badge' });
@@ -227,17 +277,27 @@ export class QuizHistoryView extends ItemView {
 			}
 
 			const scoreEl = cardHeader.createDiv({ cls: 'quiz-card-score' });
-			scoreEl.setText(`${quiz.score}%`);
 
-			// Color code the score
-			if (quiz.score! >= 90) {
-				scoreEl.addClass('quiz-score-excellent');
-			} else if (quiz.score! >= 70) {
-				scoreEl.addClass('quiz-score-good');
-			} else if (quiz.score! >= 50) {
-				scoreEl.addClass('quiz-score-fair');
+			// Show score for completed quizzes, progress for in-progress
+			if (quiz.completed) {
+				scoreEl.setText(`${quiz.score}%`);
+
+				// Color code the score
+				if (quiz.score! >= 90) {
+					scoreEl.addClass('quiz-score-excellent');
+				} else if (quiz.score! >= 70) {
+					scoreEl.addClass('quiz-score-good');
+				} else if (quiz.score! >= 50) {
+					scoreEl.addClass('quiz-score-fair');
+				} else {
+					scoreEl.addClass('quiz-score-poor');
+				}
 			} else {
-				scoreEl.addClass('quiz-score-poor');
+				// Show progress for in-progress quizzes
+				const answeredCount = quiz.questions.filter(q => q.userAnswer !== undefined).length;
+				const progressPercent = Math.round((answeredCount / quiz.totalQuestions) * 100);
+				scoreEl.setText(`${progressPercent}%`);
+				scoreEl.addClass('quiz-progress-indicator');
 			}
 
 			// Details section
@@ -245,49 +305,95 @@ export class QuizHistoryView extends ItemView {
 
 			const detailsGrid = cardDetails.createDiv({ cls: 'quiz-card-details-grid' });
 
-			detailsGrid.createDiv({
-				text: `${quiz.correctCount} / ${quiz.totalQuestions} correct`,
-				cls: 'quiz-card-detail'
-			});
-
-			const completedDate = new Date(quiz.completed!);
-			detailsGrid.createDiv({
-				text: this.formatDate(completedDate),
-				cls: 'quiz-card-detail'
-			});
-
-			const timeTaken = this.calculateTimeTaken(quiz);
-			if (timeTaken) {
+			if (quiz.completed) {
+				// Completed quiz details
 				detailsGrid.createDiv({
-					text: timeTaken,
+					text: `${quiz.correctCount} / ${quiz.totalQuestions} correct`,
 					cls: 'quiz-card-detail'
 				});
-			}
 
-			// Show learn mode stats if available
-			if (quiz.learnModeStats) {
-				const learnStats = cardDetails.createDiv({ cls: 'quiz-learn-stats' });
-				learnStats.createDiv({ text: `First-try correct: ${quiz.learnModeStats.firstPassCorrect}/${quiz.totalQuestions}` });
-				learnStats.createDiv({ text: `Total attempts: ${quiz.learnModeStats.totalAttempts}` });
-				learnStats.createDiv({ text: `Questions retried: ${quiz.learnModeStats.questionsRequeued}` });
+				const completedDate = new Date(quiz.completed);
+				detailsGrid.createDiv({
+					text: this.formatDate(completedDate),
+					cls: 'quiz-card-detail'
+				});
+
+				const timeTaken = this.calculateTimeTaken(quiz);
+				if (timeTaken) {
+					detailsGrid.createDiv({
+						text: timeTaken,
+						cls: 'quiz-card-detail'
+					});
+				}
+
+				// Show learn mode stats if available
+				if (quiz.learnModeStats) {
+					const learnStats = cardDetails.createDiv({ cls: 'quiz-learn-stats' });
+					learnStats.createDiv({ text: `First-try correct: ${quiz.learnModeStats.firstPassCorrect}/${quiz.totalQuestions}` });
+					learnStats.createDiv({ text: `Total attempts: ${quiz.learnModeStats.totalAttempts}` });
+					learnStats.createDiv({ text: `Questions retried: ${quiz.learnModeStats.questionsRequeued}` });
+				}
+			} else {
+				// In-progress quiz details
+				const answeredCount = quiz.questions.filter(q => q.userAnswer !== undefined).length;
+				detailsGrid.createDiv({
+					text: `${answeredCount} / ${quiz.totalQuestions} answered`,
+					cls: 'quiz-card-detail'
+				});
+
+				const currentPos = (quiz.currentQuestionIndex ?? 0) + 1;
+				detailsGrid.createDiv({
+					text: `Currently on question ${currentPos}`,
+					cls: 'quiz-card-detail'
+				});
+
+				if (quiz.lastAccessed) {
+					const lastAccessedDate = new Date(quiz.lastAccessed);
+					detailsGrid.createDiv({
+						text: `Last accessed ${this.formatDate(lastAccessedDate)}`,
+						cls: 'quiz-card-detail'
+					});
+				}
 			}
 
 			// Actions section
 			const actions = quizCard.createDiv({ cls: 'quiz-card-actions' });
 
-		const viewBtn = actions.createEl('button', {
-			text: 'View',
-			cls: 'quiz-card-btn quiz-card-btn-primary'
-		});
-		viewBtn.addEventListener('click', () => void this.viewQuiz(quiz));		const retakeBtn = actions.createEl('button', {
-			text: 'Retake',
-			cls: 'quiz-card-btn'
-		});
-		retakeBtn.addEventListener('click', () => void this.retakeQuiz(quiz));		const exportBtn = actions.createEl('button', {
-			text: 'Export',
-			cls: 'quiz-card-btn'
-		});
-		exportBtn.addEventListener('click', () => void this.exportQuiz(quiz));			const deleteBtn = actions.createEl('button', {
+			if (quiz.completed) {
+				// Completed quiz actions
+				const viewBtn = actions.createEl('button', {
+					text: 'View',
+					cls: 'quiz-card-btn quiz-card-btn-primary'
+				});
+				viewBtn.addEventListener('click', () => void this.viewQuiz(quiz));
+
+				const retakeBtn = actions.createEl('button', {
+					text: 'Retake',
+					cls: 'quiz-card-btn'
+				});
+				retakeBtn.addEventListener('click', () => void this.retakeQuiz(quiz));
+
+				const exportBtn = actions.createEl('button', {
+					text: 'Export',
+					cls: 'quiz-card-btn'
+				});
+				exportBtn.addEventListener('click', () => void this.exportQuiz(quiz));
+			} else {
+				// In-progress quiz actions
+				const resumeBtn = actions.createEl('button', {
+					text: 'Resume',
+					cls: 'quiz-card-btn quiz-card-btn-primary'
+				});
+				resumeBtn.addEventListener('click', () => void this.resumeQuiz(quiz));
+
+				const startOverBtn = actions.createEl('button', {
+					text: 'Start over',
+					cls: 'quiz-card-btn'
+				});
+				startOverBtn.addEventListener('click', () => void this.startOver(quiz));
+			}
+
+			const deleteBtn = actions.createEl('button', {
 				text: 'Delete',
 				cls: 'quiz-card-btn quiz-card-btn-danger'
 			});
@@ -300,12 +406,20 @@ export class QuizHistoryView extends ItemView {
 
 		switch (this.sortBy) {
 			case 'date':
-				sorted.sort((a, b) =>
-					new Date(b.completed!).getTime() - new Date(a.completed!).getTime()
-				);
+				sorted.sort((a, b) => {
+					// Use lastAccessed for in-progress, completed for finished
+					const aDate = a.completed ? new Date(a.completed) : (a.lastAccessed ? new Date(a.lastAccessed) : new Date(a.created));
+					const bDate = b.completed ? new Date(b.completed) : (b.lastAccessed ? new Date(b.lastAccessed) : new Date(b.created));
+					return bDate.getTime() - aDate.getTime();
+				});
 				break;
 			case 'score':
-				sorted.sort((a, b) => (b.score || 0) - (a.score || 0));
+				sorted.sort((a, b) => {
+					// Put in-progress quizzes at the end when sorting by score
+					if (!a.completed && b.completed) return 1;
+					if (a.completed && !b.completed) return -1;
+					return (b.score || 0) - (a.score || 0);
+				});
 				break;
 			case 'title':
 				sorted.sort((a, b) => a.title.localeCompare(b.title));
@@ -366,11 +480,21 @@ export class QuizHistoryView extends ItemView {
 			completed: undefined,
 			score: undefined,
 			correctCount: undefined,
+			state: 'in-progress' as const,
+			lastAccessed: new Date(),
+			currentQuestionIndex: 0,
 			questions: quiz.questions.map(q => ({
 				...q,
 				userAnswer: undefined,
-				correct: undefined
-			}))
+				correct: undefined,
+				checked: undefined,
+				attemptCount: undefined
+			})),
+			learnModeStats: quiz.config.learnMode ? {
+				totalAttempts: 0,
+				questionsRequeued: 0,
+				firstPassCorrect: 0
+			} : undefined
 		};
 
 		await this.plugin.quizStorage.addQuiz(newQuiz);
@@ -387,6 +511,57 @@ export class QuizHistoryView extends ItemView {
 		}
 
 		new Notice('Quiz ready! Good luck!');
+	}
+
+	private async resumeQuiz(quiz: Quiz): Promise<void> {
+		const leaf = this.app.workspace.getLeaf('tab');
+		await leaf.setViewState({
+			type: 'flashly-quiz-view',
+			active: true
+		});
+
+		const view = leaf.view;
+		if (view && 'loadQuiz' in view) {
+			(view as unknown as QuizView).loadQuiz(quiz);
+		}
+
+		new Notice('Resuming quiz...');
+	}
+
+	private async startOver(quiz: Quiz): Promise<void> {
+		// Reset the quiz to initial state
+		quiz.questions.forEach(q => {
+			q.userAnswer = undefined;
+			q.correct = undefined;
+			q.checked = undefined;
+			q.attemptCount = undefined;
+		});
+
+		quiz.currentQuestionIndex = 0;
+		quiz.lastAccessed = new Date();
+		quiz.state = 'in-progress';
+
+		// Reset learn mode stats if applicable
+		if (quiz.learnModeStats) {
+			quiz.learnModeStats.savedQueue = undefined;
+			quiz.learnModeStats.savedQueuePosition = undefined;
+			quiz.learnModeStats.savedAnsweredQuestions = undefined;
+		}
+
+		await this.plugin.quizStorage.updateQuiz(quiz);
+
+		const leaf = this.app.workspace.getLeaf('tab');
+		await leaf.setViewState({
+			type: 'flashly-quiz-view',
+			active: true
+		});
+
+		const view = leaf.view;
+		if (view && 'loadQuiz' in view) {
+			(view as unknown as QuizView).loadQuiz(quiz);
+		}
+
+		new Notice('Quiz reset. Starting from the beginning...');
 	}
 
 	private async exportQuiz(quiz: Quiz): Promise<void> {

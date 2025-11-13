@@ -7,6 +7,8 @@ export type QuizQuestionType = 'multiple-choice' | 'fill-blank' | 'true-false';
 
 export type QuizGenerationMethod = 'traditional' | 'ai-generated';
 
+export type QuizState = 'in-progress' | 'completed';
+
 export interface QuizQuestion {
 	id: string;                          // Unique question ID
 	type: QuizQuestionType;              // Question type
@@ -25,6 +27,9 @@ export interface LearnModeStats {
 	totalAttempts: number;               // Total question attempts (including retries)
 	questionsRequeued: number;           // How many questions were re-added to queue
 	firstPassCorrect: number;            // Questions answered correctly on first try
+	savedQueue?: number[];               // Saved question queue for resuming
+	savedQueuePosition?: number;         // Saved position in queue for resuming
+	savedAnsweredQuestions?: number[];   // Saved set of answered question indices
 }
 
 export interface Quiz {
@@ -40,6 +45,9 @@ export interface Quiz {
 	totalQuestions: number;              // Total number of questions
 	config: QuizConfig;                  // Configuration used to generate quiz
 	learnModeStats?: LearnModeStats;     // Statistics for learn mode quizzes
+	state?: QuizState;                   // Current state of the quiz
+	lastAccessed?: Date;                 // Last time quiz was accessed
+	currentQuestionIndex?: number;       // Current position in quiz (for resuming)
 }
 
 export interface QuizConfig {
@@ -122,7 +130,10 @@ export function createQuiz(
 		sourceCards,
 		questions,
 		totalQuestions: questions.length,
-		config
+		config,
+		state: 'in-progress',
+		lastAccessed: new Date(),
+		currentQuestionIndex: 0
 	};
 }
 
