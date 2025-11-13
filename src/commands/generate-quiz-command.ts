@@ -122,6 +122,14 @@ class GenerateQuizModal extends Modal {
 		} else {
 			const selectedDecks = new Set<string>();
 
+			// Add search input
+			const searchContainer = deckContainer.createDiv({ cls: 'quiz-deck-search-container' });
+			const searchInput = searchContainer.createEl('input', {
+				type: 'text',
+				placeholder: 'Search decks...',
+				cls: 'quiz-deck-search-input'
+			});
+
 			// Add "Select all" / "Deselect all" buttons
 			const controlsDiv = deckContainer.createDiv({ cls: 'quiz-deck-controls' });
 
@@ -129,32 +137,17 @@ class GenerateQuizModal extends Modal {
 				text: 'Select all',
 				cls: 'quiz-deck-control-btn'
 			});
-			selectAllBtn.addEventListener('click', (e) => {
-				e.preventDefault();
-				availableDecks.forEach(deck => selectedDecks.add(deck));
-				this.config.deckFilter = Array.from(selectedDecks);
-				// Update all checkboxes
-				deckContainer.querySelectorAll('input[type="checkbox"]').forEach((checkbox: HTMLInputElement) => {
-					checkbox.checked = true;
-				});
-			});
 
 			const deselectAllBtn = controlsDiv.createEl('button', {
 				text: 'Deselect all',
 				cls: 'quiz-deck-control-btn'
 			});
-			deselectAllBtn.addEventListener('click', (e) => {
-				e.preventDefault();
-				selectedDecks.clear();
-				this.config.deckFilter = [];
-				// Update all checkboxes
-				deckContainer.querySelectorAll('input[type="checkbox"]').forEach((checkbox: HTMLInputElement) => {
-					checkbox.checked = false;
-				});
-			});
 
 			// Create scrollable deck list
 			const deckList = deckContainer.createDiv({ cls: 'quiz-deck-list' });
+
+			// Store deck items for filtering
+			const deckItems: Array<{ element: HTMLElement, name: string, checkbox: HTMLInputElement }> = [];
 
 			availableDecks.forEach(deck => {
 				const deckItem = deckList.createDiv({ cls: 'quiz-deck-item' });
@@ -185,6 +178,59 @@ class GenerateQuizModal extends Modal {
 					}
 					this.config.deckFilter = Array.from(selectedDecks);
 				});
+
+				// Store reference for filtering
+				deckItems.push({ element: deckItem, name: deck, checkbox });
+			});
+
+			// Search functionality
+			searchInput.addEventListener('input', () => {
+				const searchTerm = searchInput.value.toLowerCase();
+
+				deckItems.forEach(item => {
+					const matches = item.name.toLowerCase().includes(searchTerm);
+					item.element.style.display = matches ? '' : 'none';
+				});
+
+				// Update no results message
+				const visibleItems = deckItems.filter(item => item.element.style.display !== 'none');
+				let noResultsMsg = deckList.querySelector('.quiz-deck-no-results') as HTMLElement;
+
+				if (visibleItems.length === 0) {
+					if (!noResultsMsg) {
+						noResultsMsg = deckList.createDiv({
+							text: 'No decks found',
+							cls: 'quiz-deck-no-results'
+						});
+					}
+					noResultsMsg.style.display = '';
+				} else if (noResultsMsg) {
+					noResultsMsg.style.display = 'none';
+				}
+			});
+
+			// Update Select all button to only affect visible decks
+			selectAllBtn.addEventListener('click', (e) => {
+				e.preventDefault();
+				deckItems.forEach(item => {
+					if (item.element.style.display !== 'none') {
+						selectedDecks.add(item.name);
+						item.checkbox.checked = true;
+					}
+				});
+				this.config.deckFilter = Array.from(selectedDecks);
+			});
+
+			// Update Deselect all button to only affect visible decks
+			deselectAllBtn.addEventListener('click', (e) => {
+				e.preventDefault();
+				deckItems.forEach(item => {
+					if (item.element.style.display !== 'none') {
+						selectedDecks.delete(item.name);
+						item.checkbox.checked = false;
+					}
+				});
+				this.config.deckFilter = Array.from(selectedDecks);
 			});
 		}
 

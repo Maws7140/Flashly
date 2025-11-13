@@ -3451,6 +3451,30 @@
   margin-bottom: 16px;
 }
 
+.quiz-deck-search-container {
+  margin-bottom: 12px;
+}
+
+.quiz-deck-search-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 0.95em;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  transition: border-color 0.2s;
+}
+
+.quiz-deck-search-input:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+}
+
+.quiz-deck-search-input::placeholder {
+  color: var(--text-muted);
+}
+
 .quiz-deck-controls {
   display: flex;
   gap: 8px;
@@ -3528,6 +3552,13 @@
   color: var(--text-muted);
   font-size: 0.9em;
   font-weight: normal;
+}
+
+.quiz-deck-no-results {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 /* ========== TUTORIAL MODAL ========== */
