@@ -281,7 +281,7 @@ export class QuizView extends ItemView {
 
 		// Learn mode feedback (if answer has been checked)
 		if (this.learnModeEnabled && question.checked) {
-			this.renderLearnModeFeedback(questionContainer, question);
+			await this.renderLearnModeFeedback(questionContainer, question);
 		}
 
 		// Navigation
@@ -556,7 +556,7 @@ export class QuizView extends ItemView {
 	/**
 	 * Render feedback for learn mode
 	 */
-	private renderLearnModeFeedback(container: HTMLElement, question: QuizQuestion): void {
+	private async renderLearnModeFeedback(container: HTMLElement, question: QuizQuestion): Promise<void> {
 		const feedbackCard = container.createDiv({ cls: 'quiz-learn-feedback' });
 
 		if (question.correct) {
@@ -577,18 +577,29 @@ export class QuizView extends ItemView {
 			// Show user's answer
 			const userAnswerDiv = feedbackCard.createDiv({ cls: 'quiz-learn-your-answer' });
 			userAnswerDiv.createEl('strong', { text: 'Your answer: ' });
-			userAnswerDiv.createSpan({ text: this.formatAnswer(question, question.userAnswer!) });
+			const userAnswerContent = userAnswerDiv.createDiv({ cls: 'quiz-answer-content' });
+			if (this.component) {
+				const userAnswerText = this.formatAnswer(question, question.userAnswer!);
+				await MarkdownRenderer.render(this.app, userAnswerText, userAnswerContent, '', this.component);
+			}
 
 			// Show correct answer
 			const correctAnswerDiv = feedbackCard.createDiv({ cls: 'quiz-learn-correct-answer' });
 			correctAnswerDiv.createEl('strong', { text: 'Correct answer: ' });
-			correctAnswerDiv.createSpan({ text: this.formatAnswer(question, question.correctAnswer) });
+			const correctAnswerContent = correctAnswerDiv.createDiv({ cls: 'quiz-answer-content' });
+			if (this.component) {
+				const correctAnswerText = this.formatAnswer(question, question.correctAnswer);
+				await MarkdownRenderer.render(this.app, correctAnswerText, correctAnswerContent, '', this.component);
+			}
 
 			// Show explanation if available
 			if (question.explanation) {
 				const explanationDiv = feedbackCard.createDiv({ cls: 'quiz-learn-explanation' });
 				explanationDiv.createEl('strong', { text: 'Explanation:' });
-				explanationDiv.createEl('p', { text: question.explanation });
+				const explanationContent = explanationDiv.createDiv({ cls: 'quiz-explanation-content' });
+				if (this.component) {
+					await MarkdownRenderer.render(this.app, question.explanation, explanationContent, '', this.component);
+				}
 			}
 
 			// Show re-queue notice
