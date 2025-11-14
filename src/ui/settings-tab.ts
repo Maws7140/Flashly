@@ -600,6 +600,29 @@ export class FlashlySettingTab extends PluginSettingTab {
 				});
 		}
 
+		// Browser Settings
+		new Setting(containerEl)
+			.setName('Flashcard browser')
+			.setHeading();
+
+		new Setting(containerEl)
+			.setName('Default sort mode')
+			.setDesc('Default sorting for cards when browsing a deck')
+			.addDropdown(dropdown => dropdown
+				.addOption('created-desc', 'Most recently made')
+				.addOption('created-asc', 'Oldest first')
+				.addOption('updated-desc', 'Recently updated')
+				.addOption('updated-asc', 'Least recently updated')
+				.addOption('due-asc', 'Due soonest')
+				.addOption('due-desc', 'Due latest')
+				.addOption('deck-asc', 'Deck (A-Z)')
+				.addOption('deck-desc', 'Deck (Z-A)')
+				.setValue(this.plugin.settings.browser.defaultSort)
+				.onChange(async (value) => {
+					this.plugin.settings.browser.defaultSort = value as any;
+					await this.plugin.saveSettings();
+				}));
+
 		// Tutorial Settings
 		new Setting(containerEl)
 			.setName('Tutorial')

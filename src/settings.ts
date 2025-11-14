@@ -4,6 +4,7 @@
 
 import { FlashcardParserSettings } from './parser/flashcard-parser';
 import { AIQuizSettings, DEFAULT_AI_QUIZ_SETTINGS } from './models/quiz';
+import type { SortOption } from './viewmodels/browser-viewmodel';
 
 export type SchedulerType = 'fsrs' | 'sm2';
 
@@ -44,11 +45,16 @@ export interface DeveloperSettings {
 	enableDebugLogging: boolean;
 }
 
+export interface BrowserSettings {
+	defaultSort: SortOption;
+}
+
 export interface FlashlySettings {
 	parser: FlashcardParserSettings;
 	review: ReviewSettings;
 	quiz: AIQuizSettings;
 	export: ExportSettings;
+	browser: BrowserSettings;
 	tutorial: TutorialSettings;
 	developer: DeveloperSettings;
 }
@@ -98,6 +104,9 @@ export const DEFAULT_SETTINGS: FlashlySettings = {
 		ankiDeckPrefix: 'Flashly',
 		ankiConvertMarkdown: true,
 		ankiPlainTextMode: false
+	},
+	browser: {
+		defaultSort: 'created-desc'
 	},
 	tutorial: {
 		completed: false,

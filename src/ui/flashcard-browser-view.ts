@@ -1,5 +1,5 @@
 import { ItemView, WorkspaceLeaf, Notice, setIcon, MarkdownRenderer, Component, Modal, App, TFile } from 'obsidian';
-import { BrowserViewModel, BrowserViewMode, DeckInfo } from '../viewmodels/browser-viewmodel';
+import { BrowserViewModel, BrowserViewMode, DeckInfo, SortOption } from '../viewmodels/browser-viewmodel';
 import { FlashlyCard } from '../models/card';
 import type FlashlyPlugin from '../../main';
 
@@ -29,7 +29,7 @@ export class FlashcardBrowserView extends ItemView {
   constructor(leaf: WorkspaceLeaf, plugin: FlashlyPlugin) {
     super(leaf);
     this.plugin = plugin;
-    this.viewModel = new BrowserViewModel([]);
+    this.viewModel = new BrowserViewModel([], plugin.settings.browser.defaultSort);
   }
 
   getViewType(): string {
@@ -488,6 +488,9 @@ export class FlashcardBrowserView extends ItemView {
     // Header with breadcrumb
     this.renderCardViewHeader(cardViewContainer);
 
+    // Sort controls
+    this.renderCardSort(cardViewContainer);
+
     // Card progress
     this.renderCardProgress(cardViewContainer);
 
@@ -522,6 +525,42 @@ export class FlashcardBrowserView extends ItemView {
     header.createDiv({
       cls: 'deck-title',
       text: state.selectedDeck ?? '',
+    });
+  }
+
+  /**
+   * Render card sort dropdown
+   */
+  private renderCardSort(container: HTMLElement) {
+    const sortRow = container.createDiv({ cls: 'card-sort-row' });
+
+    const sortContainer = sortRow.createDiv({ cls: 'card-sort' });
+    sortContainer.createSpan({ cls: 'card-sort-label', text: 'Sort: ' });
+    const sortSelect = sortContainer.createEl('select', { cls: 'card-sort-select' });
+
+    const sortOptions: Array<{ value: SortOption; label: string }> = [
+      { value: 'created-desc', label: 'Most recently made' },
+      { value: 'created-asc', label: 'Oldest first' },
+      { value: 'updated-desc', label: 'Recently updated' },
+      { value: 'updated-asc', label: 'Least recently updated' },
+      { value: 'due-asc', label: 'Due soonest' },
+      { value: 'due-desc', label: 'Due latest' },
+      { value: 'deck-asc', label: 'Deck (A-Z)' },
+      { value: 'deck-desc', label: 'Deck (Z-A)' },
+    ];
+
+    const currentSort = this.viewModel.getSortBy();
+
+    for (const opt of sortOptions) {
+      const option = sortSelect.createEl('option', { value: opt.value, text: opt.label });
+      if (opt.value === currentSort) {
+        option.selected = true;
+      }
+    }
+
+    sortSelect.addEventListener('change', (evt: Event) => {
+      this.viewModel.setSortBy((evt.target as HTMLSelectElement).value as SortOption);
+      void this.render();
     });
   }
 

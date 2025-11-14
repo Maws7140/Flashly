@@ -64,8 +64,11 @@ export class BrowserViewModel {
     showingAnswer: false,
   };
 
-  constructor(cards: FlashlyCard[] = []) {
+  constructor(cards: FlashlyCard[] = [], defaultSort?: SortOption) {
     this.cards = cards;
+    if (defaultSort) {
+      this.sortBy = defaultSort;
+    }
   }
 
   /**
@@ -94,6 +97,13 @@ export class BrowserViewModel {
    */
   setSortBy(sortBy: SortOption): void {
     this.sortBy = sortBy;
+  }
+
+  /**
+   * Get current sorting option
+   */
+  getSortBy(): SortOption {
+    return this.sortBy;
   }
 
   /**
@@ -304,11 +314,12 @@ export class BrowserViewModel {
   }
 
   /**
-   * Get cards in the currently selected deck
+   * Get cards in the currently selected deck (sorted)
    */
   getCardsInSelectedDeck(): FlashlyCard[] {
     if (!this.viewState.selectedDeck) return [];
-    return this.cards.filter((c) => c.deck === this.viewState.selectedDeck);
+    const deckCards = this.cards.filter((c) => c.deck === this.viewState.selectedDeck);
+    return this.applySorting(deckCards);
   }
 
   /**
