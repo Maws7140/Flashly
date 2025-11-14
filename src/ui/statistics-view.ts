@@ -36,13 +36,12 @@ export class StatisticsView extends ItemView {
 		return 'bar-chart';
 	}
 
-   
-	async onOpen(): Promise<void> {
+
+	onOpen(): void {
 		this.queueRender();
 	}
 
-   
-	async onClose(): Promise<void> {
+	onClose(): void {
 		this.containerEl.empty();
 	}
 
