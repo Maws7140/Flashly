@@ -436,6 +436,52 @@
   transform: scale(1.1);
 }
 
+/* Card Sort */
+.card-sort-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.card-sort {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-sort-label {
+  font-size: 0.9em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.card-sort-select {
+  box-sizing: border-box;
+  height: 36px;
+  line-height: 1.2;
+  padding: 8px 28px 8px 12px;
+  background: var(--background-primary);
+  border: 2px solid var(--background-modifier-border);
+  border-radius: 6px;
+  color: var(--text-normal);
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  min-width: 180px;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.card-sort-select:hover {
+  border-color: var(--interactive-accent);
+}
+
+.card-sort-select:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 3px rgba(var(--interactive-accent-rgb), 0.1);
+}
+
 /* Card Progress */
 .card-progress {
   display: flex;

@@ -97,6 +97,13 @@ export class BrowserViewModel {
   }
 
   /**
+   * Get current sorting option
+   */
+  getSortBy(): SortOption {
+    return this.sortBy;
+  }
+
+  /**
    * Clear all filters and search
    */
   clearFilters(): void {
@@ -304,11 +311,12 @@ export class BrowserViewModel {
   }
 
   /**
-   * Get cards in the currently selected deck
+   * Get cards in the currently selected deck (sorted)
    */
   getCardsInSelectedDeck(): FlashlyCard[] {
     if (!this.viewState.selectedDeck) return [];
-    return this.cards.filter((c) => c.deck === this.viewState.selectedDeck);
+    const deckCards = this.cards.filter((c) => c.deck === this.viewState.selectedDeck);
+    return this.applySorting(deckCards);
   }
 
   /**
