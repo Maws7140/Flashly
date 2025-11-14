@@ -69,7 +69,15 @@ export class AIQuizGenerator {
 				return this.handleUnknownProvider(this.settings.provider);
 		}
 
-		return response.questions;
+		// Remove duplicate questions
+		const deduplicatedQuestions = this.removeDuplicateQuestions(response.questions);
+
+		// Log if duplicates were found
+		if (deduplicatedQuestions.length < response.questions.length) {
+			this.logger?.log(`Removed ${response.questions.length - deduplicatedQuestions.length} duplicate question(s)`);
+		}
+
+		return deduplicatedQuestions;
 	}
 
 	private handleUnknownProvider(provider: never): never {
@@ -101,6 +109,7 @@ ${cards.map((card, i) => `${i + 1}. Q: ${card.front}\n   A: ${card.back}`).join(
 5. For true-false, create statements that test understanding
 6. Make questions clear, unambiguous, and test real understanding
 7. Use varied difficulty levels
+8. IMPORTANT: Each question must be unique - do NOT create duplicate questions with the same or very similar prompts
 
 **Response Format (JSON):**
 {
@@ -129,6 +138,30 @@ ${cards.map((card, i) => `${i + 1}. Q: ${card.front}\n   A: ${card.back}`).join(
 }
 
 Respond ONLY with valid JSON in the format above. Do not include any other text.`;
+	}
+
+	/**
+	 * Remove duplicate questions based on prompt similarity
+	 */
+	private removeDuplicateQuestions(questions: QuizQuestion[]): QuizQuestion[] {
+		const seen = new Set<string>();
+		const unique: QuizQuestion[] = [];
+
+		for (const question of questions) {
+			// Normalize prompt for comparison (lowercase, trim, remove extra spaces)
+			const normalizedPrompt = question.prompt
+				.toLowerCase()
+				.trim()
+				.replace(/\s+/g, ' ');
+
+			// Check if we've seen this prompt before
+			if (!seen.has(normalizedPrompt)) {
+				seen.add(normalizedPrompt);
+				unique.push(question);
+			}
+		}
+
+		return unique;
 	}
 
 	/**
