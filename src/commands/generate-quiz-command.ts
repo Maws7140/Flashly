@@ -322,7 +322,9 @@ class GenerateQuizModal extends Modal {
 				return;
 			}
 
-			if (cards.length < this.config.questionCount) {
+			// Only limit question count for traditional quizzes
+			// AI quizzes can generate more questions than available cards
+			if (!this.config.useAI && cards.length < this.config.questionCount) {
 				new Notice(`Only ${cards.length} cards available. Generating ${cards.length} questions instead.`);
 				this.config.questionCount = cards.length;
 			}
