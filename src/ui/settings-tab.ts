@@ -6,6 +6,7 @@ import { App, PluginSettingTab, Setting } from 'obsidian';
 import type FlashlyPlugin from '../../main';
 import type { SchedulerType } from '../settings';
 import type { AIProvider } from '../models/quiz';
+import type { SortOption } from '../viewmodels/browser-viewmodel';
 import { TutorialModal, getTutorialSteps } from './tutorial-modal';
 
 export class FlashlySettingTab extends PluginSettingTab {
@@ -619,7 +620,7 @@ export class FlashlySettingTab extends PluginSettingTab {
 				.addOption('deck-desc', 'Deck (Z-A)')
 				.setValue(this.plugin.settings.browser.defaultSort)
 				.onChange(async (value) => {
-					this.plugin.settings.browser.defaultSort = value as any;
+					this.plugin.settings.browser.defaultSort = value as SortOption;
 					await this.plugin.saveSettings();
 				}));
 
