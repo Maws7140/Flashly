@@ -43,13 +43,14 @@ export class QuizHistoryView extends ItemView {
 		return 'history';
 	}
 
-   
-	async onOpen(): Promise<void> {
+
+
+	onOpen(): void {
 		this.queueRender();
 	}
 
-   
-	async onClose(): Promise<void> {
+
+	onClose(): void {
 		this.containerEl.empty();
 	}
 

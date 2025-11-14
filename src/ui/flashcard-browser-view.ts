@@ -44,8 +44,9 @@ export class FlashcardBrowserView extends ItemView {
     return 'layers';
   }
 
-   
-  async onOpen(): Promise<void> {
+
+
+  onOpen(): void {
     // Load component
     this.component.load();
 
@@ -91,8 +92,8 @@ export class FlashcardBrowserView extends ItemView {
     this.containerEl.setAttribute('tabindex', '-1');
   }
 
-   
-  async onClose(): Promise<void> {
+
+  onClose(): void {
     // Clean up animation timeout
     if (this.animationTimeoutId !== null) {
       window.clearTimeout(this.animationTimeoutId);

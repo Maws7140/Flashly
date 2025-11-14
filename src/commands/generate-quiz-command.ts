@@ -189,11 +189,11 @@ class GenerateQuizModal extends Modal {
 
 				deckItems.forEach(item => {
 					const matches = item.name.toLowerCase().includes(searchTerm);
-					item.element.style.display = matches ? '' : 'none';
+					item.element.toggleClass('hidden', !matches);
 				});
 
 				// Update no results message
-				const visibleItems = deckItems.filter(item => item.element.style.display !== 'none');
+				const visibleItems = deckItems.filter(item => !item.element.hasClass('hidden'));
 				let noResultsMsg = deckList.querySelector('.quiz-deck-no-results') as HTMLElement;
 
 				if (visibleItems.length === 0) {
@@ -203,9 +203,9 @@ class GenerateQuizModal extends Modal {
 							cls: 'quiz-deck-no-results'
 						});
 					}
-					noResultsMsg.style.display = '';
+					noResultsMsg.removeClass('hidden');
 				} else if (noResultsMsg) {
-					noResultsMsg.style.display = 'none';
+					noResultsMsg.addClass('hidden');
 				}
 			});
 
@@ -213,7 +213,7 @@ class GenerateQuizModal extends Modal {
 			selectAllBtn.addEventListener('click', (e) => {
 				e.preventDefault();
 				deckItems.forEach(item => {
-					if (item.element.style.display !== 'none') {
+					if (!item.element.hasClass('hidden')) {
 						selectedDecks.add(item.name);
 						item.checkbox.checked = true;
 					}
@@ -225,7 +225,7 @@ class GenerateQuizModal extends Modal {
 			deselectAllBtn.addEventListener('click', (e) => {
 				e.preventDefault();
 				deckItems.forEach(item => {
-					if (item.element.style.display !== 'none') {
+					if (!item.element.hasClass('hidden')) {
 						selectedDecks.delete(item.name);
 						item.checkbox.checked = false;
 					}
