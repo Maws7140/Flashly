@@ -48,12 +48,14 @@ export class QuizView extends ItemView {
 	}
 
 
+
 	onOpen(): void {
 		this.component = new Component();
 		this.component.load();
 		void this.render();
 		document.addEventListener('keydown', this.keydownHandler);
 	}
+
 
 	onClose(): void {
 		if (this.debounceTimer !== null) {

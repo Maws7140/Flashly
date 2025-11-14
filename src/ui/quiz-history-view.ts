@@ -44,9 +44,11 @@ export class QuizHistoryView extends ItemView {
 	}
 
 
+
 	onOpen(): void {
 		this.queueRender();
 	}
+
 
 	onClose(): void {
 		this.containerEl.empty();

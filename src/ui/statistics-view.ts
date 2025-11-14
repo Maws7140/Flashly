@@ -41,6 +41,7 @@ export class StatisticsView extends ItemView {
 		this.queueRender();
 	}
 
+
 	onClose(): void {
 		this.containerEl.empty();
 	}

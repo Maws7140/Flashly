@@ -45,6 +45,7 @@ export class FlashcardBrowserView extends ItemView {
   }
 
 
+
   onOpen(): void {
     // Load component
     this.component.load();
