@@ -1,5 +1,6 @@
 import { FlashlyCard } from '../models/card';
 import { State } from 'ts-fsrs';
+import { parseDeckPath, getParentDeck, getDepth, getAllDescendants, getDirectChildren } from '../utils/deck-naming';
 
 export type SortOption =
   | 'created-asc'
@@ -37,9 +38,16 @@ export interface BrowserViewState {
 }
 
 export interface DeckInfo {
-  name: string;
+  name: string;                       // Full path: "Math/Algebra/Quadratics"
+  displayName: string;                // Just last segment: "Quadratics"
+  parentDeck: string | null;          // "Math/Algebra" or null
+  level: number;                      // Depth (0 = top-level)
+  hasChildren: boolean;               // True if any decks are children of this one
+  childCount: number;                 // Number of direct children
   totalCards: number;
+  totalCardsIncludingChildren: number;  // Aggregated count
   dueToday: number;
+  dueTodayIncludingChildren: number;    // Aggregated count
   newCards: number;
   learningCards: number;
   reviewCards: number;
@@ -285,11 +293,20 @@ export class BrowserViewModel {
       }
     }
 
-    // Calculate statistics for each deck
+    const allDeckNames = Array.from(deckMap.keys());
     const deckList: DeckInfo[] = [];
+
+    // Calculate statistics for each deck
     for (const [deckName, deckCards] of deckMap.entries()) {
-      deckList.push({
-        name: deckName,
+      const segments = parseDeckPath(deckName);
+      const displayName = segments.length > 0 ? segments[segments.length - 1] : deckName;
+      const parentDeck = getParentDeck(deckName);
+      const level = getDepth(deckName);
+      const children = getDirectChildren(deckName, allDeckNames);
+      const hasChildren = children.length > 0;
+
+      // Calculate direct stats
+      const directStats = {
         totalCards: deckCards.length,
         dueToday: this.countDueToday(deckCards),
         newCards: deckCards.filter((c) => c.fsrsCard.state === State.New).length,
@@ -297,6 +314,23 @@ export class BrowserViewModel {
         reviewCards: deckCards.filter((c) => c.fsrsCard.state === State.Review).length,
         relearnCards: deckCards.filter((c) => c.fsrsCard.state === State.Relearning).length,
         lastStudied: this.getLastStudiedDate(deckCards),
+      };
+
+      // Calculate aggregated stats (including all descendants)
+      const allDescendantNames = getAllDescendants(deckName, allDeckNames);
+      const allDescendantCards = allDescendantNames.flatMap(d => deckMap.get(d) || []);
+      const combinedCards = [...deckCards, ...allDescendantCards];
+
+      deckList.push({
+        name: deckName,
+        displayName,
+        parentDeck,
+        level,
+        hasChildren,
+        childCount: children.length,
+        ...directStats,
+        totalCardsIncludingChildren: combinedCards.length,
+        dueTodayIncludingChildren: this.countDueToday(combinedCards),
       });
     }
 

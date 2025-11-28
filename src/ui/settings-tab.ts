@@ -624,6 +624,39 @@ export class FlashlySettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+		new Setting(containerEl)
+			.setName('Show deck hierarchy')
+			.setDesc('Display decks in hierarchical structure with visual grouping (e.g., Math/Algebra)')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.browser.showHierarchy)
+				.onChange(async (value) => {
+					this.plugin.settings.browser.showHierarchy = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Show full deck paths')
+			.setDesc('Show "Math/Algebra" instead of just "Algebra" in deck names')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.browser.hierarchyShowFullPath)
+				.onChange(async (value) => {
+					this.plugin.settings.browser.hierarchyShowFullPath = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Parent deck review behavior')
+			.setDesc('What to do when reviewing a deck that has sub-decks')
+			.addDropdown(dropdown => dropdown
+				.addOption('ask', 'Ask each time')
+				.addOption('all', 'Always include sub-decks')
+				.addOption('direct', 'Only direct cards')
+				.setValue(this.plugin.settings.browser.parentDeckDefaultBehavior)
+				.onChange(async (value: 'ask' | 'all' | 'direct') => {
+					this.plugin.settings.browser.parentDeckDefaultBehavior = value;
+					await this.plugin.saveSettings();
+				}));
+
 		// Tutorial Settings
 		new Setting(containerEl)
 			.setName('Tutorial')

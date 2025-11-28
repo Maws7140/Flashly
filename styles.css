@@ -361,6 +361,40 @@
   transform: scale(0.98);
 }
 
+/* ========== DECK HIERARCHY STYLES ========== */
+
+/* Hierarchy level indicators */
+.deck-card-level-0 {
+  border-left: 3px solid var(--interactive-accent);
+}
+
+.deck-card-level-1 {
+  border-left: 3px solid var(--text-accent);
+  opacity: 0.95;
+}
+
+.deck-card-level-2,
+.deck-card-level-3 {
+  border-left: 3px solid var(--text-muted);
+  opacity: 0.9;
+}
+
+/* Parent deck styling */
+.deck-card-parent {
+  background: var(--background-secondary);
+}
+
+.deck-card-parent .deck-name {
+  font-weight: 600;
+}
+
+/* Indentation for hierarchy */
+.deck-indent {
+  display: inline-block;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
 /* ========== CARD VIEW ========== */
 
 .card-view {

@@ -1,6 +1,7 @@
 import { FlashlyCard, createFlashlyCard } from '../models/card';
 import { createEmptyCard } from 'ts-fsrs';
 import { TFile, CachedMetadata, App } from 'obsidian';
+import { getDeckName } from '../utils/deck-naming';
 
 /**
  * Settings for header-based parser
@@ -78,54 +79,13 @@ export class HeaderParser {
 	 * Get deck name using priority: frontmatter → title → subtags
 	 */
 	getDeckName(file: TFile, metadata: CachedMetadata): string {
-		for (const source of this.settings.deckNamePriority) {
-			let deckName: string | null = null;
-
-			switch (source) {
-				case 'frontmatter':
-					deckName = metadata.frontmatter?.deck;
-					break;
-
-				case 'subtags':
-					if (this.settings.useSubtags) {
-						const allTags: string[] = [];
-
-						// Collect frontmatter tags
-						if (metadata.frontmatter?.tags) {
-							const fmTags = Array.isArray(metadata.frontmatter.tags)
-								? metadata.frontmatter.tags
-								: [metadata.frontmatter.tags];
-							allTags.push(...(fmTags as string[]));
-						}
-
-						// Collect inline tags (strip # prefix)
-						if (metadata.tags) {
-							allTags.push(...metadata.tags.map(t => t.tag.replace(/^#/, '')));
-						}
-
-						// Look for subtags
-						for (const tag of allTags) {
-							for (const fcTag of this.settings.flashcardTags) {
-								if (tag.startsWith(`${fcTag}/`)) {
-									deckName = tag.substring(fcTag.length + 1);
-									break;
-								}
-							}
-							if (deckName) break;
-						}
-					}
-					break;
-
-				case 'title':
-					deckName = file.basename;
-					break;
-			}
-
-			if (deckName) return deckName;
-		}
-
-		// Fallback to note title
-		return file.basename;
+		return getDeckName(
+			file,
+			metadata,
+			this.settings.deckNamePriority,
+			this.settings.useSubtags,
+			this.settings.flashcardTags
+		);
 	}
 
 	/**

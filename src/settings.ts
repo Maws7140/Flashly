@@ -47,6 +47,9 @@ export interface DeveloperSettings {
 
 export interface BrowserSettings {
 	defaultSort: SortOption;
+	showHierarchy: boolean;                    // Show deck hierarchy with visual grouping
+	hierarchyShowFullPath: boolean;            // Show "Math/Algebra" vs just "Algebra"
+	parentDeckDefaultBehavior: 'ask' | 'all' | 'direct';  // Default for parent deck review
 }
 
 export interface FlashlySettings {
@@ -106,7 +109,10 @@ export const DEFAULT_SETTINGS: FlashlySettings = {
 		ankiPlainTextMode: false
 	},
 	browser: {
-		defaultSort: 'created-desc'
+		defaultSort: 'created-desc',
+		showHierarchy: true,
+		hierarchyShowFullPath: true,
+		parentDeckDefaultBehavior: 'ask'
 	},
 	tutorial: {
 		completed: false,

@@ -24,7 +24,7 @@ export class FlashcardParser {
 		private settings: FlashcardParserSettings,
 		private app: App
 	) {
-		this.inlineParser = new InlineParser(settings.inline);
+		this.inlineParser = new InlineParser(settings.inline, app, settings.header.flashcardTags);
 		this.headerParser = new HeaderParser(settings.header, app);
 	}
 
@@ -53,8 +53,7 @@ export class FlashcardParser {
 
 		// Parse inline cards if enabled
 		if (this.settings.inline.enabled) {
-			const content = await this.app.vault.read(file);
-			const inlineCards = this.inlineParser.parse(content, file.path);
+			const inlineCards = await this.inlineParser.parseWithFile(file);
 			cards.push(...inlineCards);
 		}
 

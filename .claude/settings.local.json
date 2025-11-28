@@ -4,7 +4,9 @@
       "Bash(claude mcp add:*)",
       "Bash(npm run build:*)",
       "Bash(npx tsc:*)",
-      "Bash(npm install)"
+      "Bash(npm install)",
+      "Bash(npm test:*)",
+      "Bash(node esbuild.config.mjs:*)"
     ],
     "deny": [],
     "ask": []

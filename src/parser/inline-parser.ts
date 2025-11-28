@@ -1,5 +1,7 @@
 import { FlashlyCard, createFlashlyCard } from '../models/card';
 import { createEmptyCard } from 'ts-fsrs';
+import { App, TFile } from 'obsidian';
+import { getDeckName } from '../utils/deck-naming';
 
 /**
  * Settings for inline parser
@@ -17,7 +19,11 @@ export interface InlineParserSettings {
  * Supports: Q::A, ??, and {cloze} formats
  */
 export class InlineParser {
-	constructor(private settings: InlineParserSettings) {}
+	constructor(
+		private settings: InlineParserSettings,
+		private app?: App,
+		private flashcardTags?: string[]
+	) {}
 
 	/**
 	 * Extract deck name from file path
@@ -32,12 +38,49 @@ export class InlineParser {
 	}
 
 	/**
-	 * Parse content for all inline flashcard formats
+	 * Parse content from a TFile with metadata support
+	 * @param file - TFile to parse
+	 * @returns Array of parsed FlashlyCards
+	 */
+	async parseWithFile(file: TFile): Promise<FlashlyCard[]> {
+		if (!this.app) {
+			throw new Error('InlineParser.parseWithFile requires app instance in constructor');
+		}
+
+		const content = await this.app.vault.read(file);
+		const metadata = this.app.metadataCache.getFileCache(file);
+
+		// Get deck name using shared utility
+		const deckName = getDeckName(
+			file,
+			metadata,
+			['frontmatter', 'subtags', 'title'], // Default priority
+			true, // useSubtags
+			this.flashcardTags || ['flashcards']
+		);
+
+		return this.parseContent(content, file.path, deckName);
+	}
+
+	/**
+	 * Parse content for all inline flashcard formats (backward compatible)
 	 * @param content - Note content to parse
 	 * @param sourcePath - Path to source file
 	 * @returns Array of parsed FlashlyCards
 	 */
 	parse(content: string, sourcePath: string): FlashlyCard[] {
+		const deckName = this.extractDeckFromPath(sourcePath);
+		return this.parseContent(content, sourcePath, deckName);
+	}
+
+	/**
+	 * Internal method to parse content with a specific deck name
+	 * @param content - Note content to parse
+	 * @param sourcePath - Path to source file
+	 * @param deckName - Deck name to assign to cards
+	 * @returns Array of parsed FlashlyCards
+	 */
+	private parseContent(content: string, sourcePath: string, deckName: string): FlashlyCard[] {
 		const cards: FlashlyCard[] = [];
 		const lines = content.split('\n');
 		
@@ -71,27 +114,27 @@ export class InlineParser {
 			
 			// Try Q::A format first
 			if (this.settings.enableQA) {
-				const qaCard = this.parseQA(line, sourcePath, i + 1);
+				const qaCard = this.parseQA(line, sourcePath, i + 1, deckName);
 				if (qaCard) {
 					cards.push(qaCard);
 					i++;
 					continue;
 				}
 			}
-			
+
 			// Try ?? format
 			if (this.settings.enableMultiLine && i + 1 < lines.length && lines[i + 1].trim() === '??') {
-				const result = this.parseMultiLine(lines, i, sourcePath);
+				const result = this.parseMultiLine(lines, i, sourcePath, deckName);
 				if (result.card) {
 					cards.push(result.card);
 					i = result.endIndex;
 					continue;
 				}
 			}
-			
+
 			// Try cloze format
 			if (this.settings.enableCloze) {
-				const clozeCards = this.parseCloze(line, sourcePath, i + 1);
+				const clozeCards = this.parseCloze(line, sourcePath, i + 1, deckName);
 				if (clozeCards.length > 0) {
 					cards.push(...clozeCards);
 				}
@@ -107,7 +150,7 @@ export class InlineParser {
 	 * Parse single-line Q::A format
 	 * Example: "What is 2+2::4"
 	 */
-	private parseQA(line: string, sourcePath: string, lineNumber: number): FlashlyCard | null {
+	private parseQA(line: string, sourcePath: string, lineNumber: number, deckName: string): FlashlyCard | null {
 		// First check if line contains :: at all
 		if (!line.includes('::')) {
 			return null;
@@ -161,10 +204,7 @@ export class InlineParser {
 		
 		// Create new FSRS card
 		const fsrsCard = createEmptyCard(new Date());
-		
-		// Extract deck name from source path
-		const deckName = this.extractDeckFromPath(sourcePath);
-		
+
 		// Create FlashlyCard
 		return createFlashlyCard(
 			front,
@@ -186,7 +226,8 @@ export class InlineParser {
 	private parseMultiLine(
 		lines: string[],
 		startIndex: number,
-		sourcePath: string
+		sourcePath: string,
+		deckName: string
 	): { card: FlashlyCard | null; endIndex: number } {
 		const question = lines[startIndex].trim();
 		const lineNumber = startIndex + 1;
@@ -240,10 +281,7 @@ export class InlineParser {
 		
 		// Create new FSRS card
 		const fsrsCard = createEmptyCard(new Date());
-		
-		// Extract deck name from source path
-		const deckName = this.extractDeckFromPath(sourcePath);
-		
+
 		// Create FlashlyCard
 		const card = createFlashlyCard(
 			question,
@@ -253,7 +291,7 @@ export class InlineParser {
 			fsrsCard,
 			deckName
 		);
-		
+
 		return { card, endIndex: i };
 	}
 
@@ -262,7 +300,7 @@ export class InlineParser {
 	 * Example: "The capital of France is {Paris}."
 	 * Creates one card per cloze
 	 */
-	private parseCloze(text: string, sourcePath: string, lineNumber: number): FlashlyCard[] {
+	private parseCloze(text: string, sourcePath: string, lineNumber: number, deckName: string): FlashlyCard[] {
 		const cards: FlashlyCard[] = [];
 		
 		// Find all cloze deletions (handle nested braces)
@@ -291,10 +329,7 @@ export class InlineParser {
 			
 			// Create FSRS card
 			const fsrsCard = createEmptyCard(new Date());
-			
-			// Extract deck name from source path
-			const deckName = this.extractDeckFromPath(sourcePath);
-			
+
 			// Create FlashlyCard
 			const card = createFlashlyCard(
 				front,
@@ -304,10 +339,10 @@ export class InlineParser {
 				fsrsCard,
 				deckName
 			);
-			
+
 			cards.push(card);
 		});
-		
+
 		return cards;
 	}
 }

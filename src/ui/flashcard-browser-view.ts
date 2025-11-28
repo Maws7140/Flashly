@@ -2,6 +2,8 @@ import { ItemView, WorkspaceLeaf, Notice, setIcon, MarkdownRenderer, Component, 
 import { BrowserViewModel, BrowserViewMode, DeckInfo, SortOption } from '../viewmodels/browser-viewmodel';
 import { FlashlyCard } from '../models/card';
 import type FlashlyPlugin from '../../main';
+import { ParentDeckReviewModal } from './parent-deck-review-modal';
+import { getAllDescendants } from '../utils/deck-naming';
 
 export const FLASHCARD_BROWSER_VIEW_TYPE = 'flashcard-browser-view';
 
@@ -394,22 +396,56 @@ export class FlashcardBrowserView extends ItemView {
   private renderDeckCard(container: HTMLElement, deck: DeckInfo) {
     const card = container.createDiv({ cls: 'deck-card' });
 
-    // Header
+    // Add hierarchy level class
+    const levelClass = `deck-card-level-${Math.min(deck.level, 3)}`;
+    card.addClass(levelClass);
+    if (deck.hasChildren) {
+      card.addClass('deck-card-parent');
+    }
+
+    // Header with hierarchy indicators
     const header = card.createDiv({ cls: 'deck-card-header' });
+
+    // Indentation based on level
+    if (deck.level > 0) {
+      const indent = header.createSpan({ cls: 'deck-indent' });
+      indent.style.width = `${deck.level * 16}px`;
+    }
+
+    // Icon based on whether deck has children
     const deckIconEl = header.createSpan({ cls: 'deck-icon' });
-    setIcon(deckIconEl, 'book-open');
+    setIcon(deckIconEl, deck.hasChildren ? 'folder' : 'book-open');
+
+    // Show full path (could be configurable in settings)
     header.createSpan({ cls: 'deck-name', text: deck.name });
 
     // Statistics
     const stats = card.createDiv({ cls: 'deck-stats' });
 
     const totalStat = stats.createDiv({ cls: 'deck-stat' });
-    totalStat.createDiv({ cls: 'deck-stat-value', text: deck.totalCards.toString() });
-    totalStat.createDiv({ cls: 'deck-stat-label', text: 'Total cards' });
+    if (deck.hasChildren) {
+      // Show both direct and aggregated counts
+      totalStat.createDiv({
+        cls: 'deck-stat-value',
+        text: `${deck.totalCards} (+${deck.totalCardsIncludingChildren - deck.totalCards})`,
+      });
+      totalStat.createDiv({ cls: 'deck-stat-label', text: 'Cards (+ children)' });
+    } else {
+      totalStat.createDiv({ cls: 'deck-stat-value', text: deck.totalCards.toString() });
+      totalStat.createDiv({ cls: 'deck-stat-label', text: 'Total cards' });
+    }
 
     const dueStat = stats.createDiv({ cls: 'deck-stat' });
-    dueStat.createDiv({ cls: 'deck-stat-value', text: deck.dueToday.toString() });
-    dueStat.createDiv({ cls: 'deck-stat-label', text: 'Due today' });
+    if (deck.hasChildren) {
+      dueStat.createDiv({
+        cls: 'deck-stat-value',
+        text: `${deck.dueToday} (+${deck.dueTodayIncludingChildren - deck.dueToday})`,
+      });
+      dueStat.createDiv({ cls: 'deck-stat-label', text: 'Due (+ children)' });
+    } else {
+      dueStat.createDiv({ cls: 'deck-stat-value', text: deck.dueToday.toString() });
+      dueStat.createDiv({ cls: 'deck-stat-label', text: 'Due today' });
+    }
 
     // Last studied
     const lastStudied = card.createDiv({ cls: 'deck-last-studied' });
@@ -436,7 +472,7 @@ export class FlashcardBrowserView extends ItemView {
     studyBtn.addEventListener('click', (evt) => {
       evt.preventDefault();
       evt.stopPropagation();
-      void this.startDeckReview(deck.name);
+      void this.startDeckReview(deck);
     });
 
     // Make entire card clickable
@@ -772,7 +808,7 @@ export class FlashcardBrowserView extends ItemView {
     modal.open();
   }
 
-  private async startDeckReview(deckName: string) {
+  private async startDeckReview(deck: DeckInfo) {
     const command = this.plugin.startReviewCommand;
     if (!command) {
       new Notice('Review command is not ready yet. Try again in a moment.');
@@ -780,9 +816,36 @@ export class FlashcardBrowserView extends ItemView {
     }
 
     try {
-      await command.startReview([deckName]);
+      let decksToReview: string[];
+
+      // If deck has children, show modal to choose review scope
+      if (deck.hasChildren) {
+        const choice = await new Promise<'all' | 'direct' | 'cancel'>((resolve) => {
+          const modal = new ParentDeckReviewModal(this.app, deck, resolve);
+          modal.open();
+        });
+
+        if (choice === 'cancel') {
+          return;
+        }
+
+        if (choice === 'all') {
+          // Include this deck and all descendants
+          const allDeckNames = this.viewModel.getDeckList().map(d => d.name);
+          const descendants = getAllDescendants(deck.name, allDeckNames);
+          decksToReview = [deck.name, ...descendants];
+        } else {
+          // Direct cards only
+          decksToReview = [deck.name];
+        }
+      } else {
+        // Leaf deck, just review it
+        decksToReview = [deck.name];
+      }
+
+      await command.startReview(decksToReview);
     } catch (error) {
-      console.error('Flashly: failed to start review session for deck', deckName, error);
+      console.error('Flashly: failed to start review session for deck', deck.name, error);
       new Notice('Failed to start review session. Check console for details.');
     }
   }
