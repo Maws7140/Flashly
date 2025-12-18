@@ -252,6 +252,7 @@ MIT License - See LICENSE file for details
 
 ## Support
 
+- [Support on Ko-fi](https://ko-fi.com/kingmaws) - If you find Flashly useful, consider supporting development
 - [Report a Bug](https://github.com/SamW7140/Flashly-/issues)
 - [Request a Feature](https://github.com/SamW7140/Flashly-/issues)
 - [Documentation](https://github.com/SamW7140/Flashly-/tree/master/docs)
@@ -350,6 +351,99 @@ Generate quizzes automatically from your flashcards using rule-based algorithms:
 - Adaptive difficulty
 
 **Privacy Note:** When using cloud providers (OpenAI/Anthropic), your flashcard content is sent to their servers. Use local models if you need complete privacy.
+
+## AnkiConnect Integration
+
+Sync your Flashly cards directly to Anki without exporting CSV files!
+
+### What is AnkiConnect?
+
+[AnkiConnect](https://ankiweb.net/shared/info/2055492159) is an Anki add-on that provides an API for external applications to communicate with Anki.
+
+### Setup Instructions
+
+#### Step 1: Install AnkiConnect Add-on
+
+1. Open Anki
+2. Go to **Tools → Add-ons → Get Add-ons**
+3. Enter code: `2055492159`
+4. Click **OK** and restart Anki
+
+#### Step 2: Configure AnkiConnect for Obsidian
+
+AnkiConnect needs to allow requests from Obsidian. Edit the AnkiConnect configuration:
+
+1. In Anki, go to **Tools → Add-ons**
+2. Select **AnkiConnect** → Click **Config**
+3. Find the `webCorsOriginList` setting
+4. Add `"app://obsidian.md"` to the list:
+
+```json
+{
+    "apiKey": null,
+    "apiLogPath": null,
+    "webBindAddress": "127.0.0.1",
+    "webBindPort": 8765,
+    "webCorsOriginList": [
+        "http://localhost",
+        "app://obsidian.md"
+    ]
+}
+```
+
+5. Click **OK** and restart Anki
+
+**Important:** Without adding `app://obsidian.md` to the CORS list, you'll get CORS errors and syncing will fail.
+
+#### Step 3: Enable in Flashly Settings
+
+1. Open Obsidian Settings → Flashly → Export
+2. Toggle **"Enable AnkiConnect"** on
+3. (Optional) Change URL if Anki is running on a different port
+4. Click **"Test connection"** to verify setup
+
+### Using AnkiConnect
+
+Once configured, you have two ways to sync:
+
+**Method 1: Export Modal**
+1. Run command: **"Export flashcards"**
+2. Select decks to sync
+3. Click **"Sync to Anki"** button (requires Anki running)
+
+**Method 2: Export as CSV**
+- Use format "Anki (CSV file)" to export a file
+- Import manually into Anki via File → Import
+
+### Features
+
+- **Direct sync**: No CSV files needed
+- **Media support**: Automatically uploads images and audio files
+- **Duplicate detection**: Skips cards that already exist
+- **Deck creation**: Creates decks automatically if they don't exist
+- **Progress feedback**: Shows success/failure counts
+
+### Troubleshooting
+
+**CORS Error:**
+```
+Access to fetch has been blocked by CORS policy
+```
+**Solution:** Make sure you added `"app://obsidian.md"` to AnkiConnect's `webCorsOriginList` (see Step 2 above)
+
+**Connection Refused:**
+```
+Failed to connect to AnkiConnect
+```
+**Solution:**
+- Make sure Anki is running
+- Verify AnkiConnect add-on is installed
+- Check that the URL in settings matches (default: `http://127.0.0.1:8765`)
+
+**Media Upload Fails:**
+- Files over 10MB are skipped
+- Check that media files exist in your vault
+- Verify file paths in your flashcards are correct
 
 ## Statistics Dashboard
 

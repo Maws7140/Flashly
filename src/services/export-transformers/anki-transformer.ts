@@ -1,7 +1,9 @@
+import { App } from 'obsidian';
 import { FlashlyCard } from '../../models/card';
 import { ExportTransformer, ExportOptions, SM2Data } from './base-transformer';
 import { convertMarkdownToHTML, stripMarkdownFormatting } from '../../utils/markdown-to-html';
 import { State } from 'ts-fsrs';
+import { MediaExtractor, MediaReference } from '../../utils/media-extractor';
 
 export interface AnkiNote {
   front: string;
@@ -20,9 +22,12 @@ export interface AnkiCard {
   };
   tags: string[];
   guid?: string;
+  media?: MediaReference[];
 }
 
 export class AnkiTransformer implements ExportTransformer<AnkiCard[]> {
+  constructor(private app?: App) {}
+
   transform(cards: FlashlyCard[], options: ExportOptions): AnkiCard[] {
     return cards.map(card => this.transformCard(card, options));
   }
@@ -39,16 +44,30 @@ export class AnkiTransformer implements ExportTransformer<AnkiCard[]> {
 
   private transformCard(card: FlashlyCard, options: ExportOptions): AnkiCard {
     const deckName = this.getDeckName(card, options);
-    const fields = this.transformFields(card, options);
     const tags = this.transformTags(card, options);
 
-    return {
+    // 1. Extract Media from original markdown
+    let media: MediaReference[] = [];
+    if (options.includeMedia && this.app) {
+      const extractor = new MediaExtractor(this.app);
+      const frontMedia = extractor.extractFromMarkdown(card.front, card.source.file);
+      const backMedia = extractor.extractFromMarkdown(card.back, card.source.file);
+      media = [...frontMedia, ...backMedia];
+    }
+
+    // 2. Transform Fields (Pass media here to handle replacement BEFORE HTML conversion)
+    const fields = this.transformFields(card, options, media);
+
+    const ankiCard: AnkiCard = {
       deckName,
       modelName: 'Basic',
       fields,
       tags,
-      guid: this.generateGuid(card)
+      guid: this.generateGuid(card),
+      media
     };
+
+    return ankiCard;
   }
 
   private getDeckName(card: FlashlyCard, options: ExportOptions): string {
@@ -57,16 +76,29 @@ export class AnkiTransformer implements ExportTransformer<AnkiCard[]> {
     return `${prefix}::${deckName}`;
   }
 
-  private transformFields(card: FlashlyCard, options: ExportOptions): { Front: string; Back: string } {
+  private transformFields(
+    card: FlashlyCard, 
+    options: ExportOptions, 
+    media: MediaReference[]
+  ): { Front: string; Back: string } {
     let front = card.front;
     let back = card.back;
 
+    // STEP A: Replace Obsidian Image Syntax with Anki HTML while still Markdown
+    // This matches the reference implementation logic directly
+    if (media.length > 0) {
+      front = this.replaceMediaInMarkdown(front, media);
+      back = this.replaceMediaInMarkdown(back, media);
+    }
+
+    // STEP B: Convert the rest of the content
     if (options.ankiPlainTextMode) {
       // Plain text mode: strip all formatting
       front = stripMarkdownFormatting(front);
       back = stripMarkdownFormatting(back);
     } else if (options.ankiConvertMarkdown) {
       // Convert Markdown to HTML
+      // Note: The HTML converter must tolerate existing <img src="..."> tags
       front = convertMarkdownToHTML(front, {
         convertWikilinks: true,
         stripObsidianSyntax: false
@@ -104,7 +136,32 @@ export class AnkiTransformer implements ExportTransformer<AnkiCard[]> {
     return Math.abs(hash).toString(36);
   }
 
+  /**
+   * CORRECTED LOGIC:
+   * Perform regex replacement on raw markdown.
+   * Matches logic from src/utils.ts in reference: convertImagesMDToHtml
+   * Replace ![[image.png]] with <img src='ankiFilename'> BEFORE converting to HTML
+   */
+  private replaceMediaInMarkdown(markdown: string, media: MediaReference[]): string {
+    let result = markdown;
 
+    // Iterate through the media references extracted earlier
+    for (const ref of media) {
+      // Create a regex that looks for the specific wikilink found by the extractor
+      // We escape the string to be regex-safe
+      const escapedOriginal = ref.originalPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      
+      // Strict replacement: ![[path/img.png]] becomes <img src='ankiFilename'>
+      // Anki strictly requires the filename ONLY in the src attribute
+      const imgTag = `<img src='${ref.ankiFilename}'>`;
+      
+      // Replace all instances
+      const regex = new RegExp(escapedOriginal, 'g');
+      result = result.replace(regex, imgTag);
+    }
+
+    return result;
+  }
 
   /**
    * Convert FSRS scheduling data to SM-2 format for Anki

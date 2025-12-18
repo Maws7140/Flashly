@@ -2,12 +2,13 @@
  * Settings UI for Flashly plugin
  */
 
-import { App, PluginSettingTab, Setting } from 'obsidian';
+import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
 import type FlashlyPlugin from '../../main';
 import type { SchedulerType } from '../settings';
 import type { AIProvider } from '../models/quiz';
 import type { SortOption } from '../viewmodels/browser-viewmodel';
 import { TutorialModal, getTutorialSteps } from './tutorial-modal';
+import { AnkiConnectService } from '../services/anki-connect';
 
 export class FlashlySettingTab extends PluginSettingTab {
 	plugin: FlashlyPlugin;
@@ -607,17 +608,37 @@ export class FlashlySettingTab extends PluginSettingTab {
 			.setHeading();
 
 		new Setting(containerEl)
-			.setName('Default sort mode')
-			.setDesc('Default sorting for cards when browsing a deck')
+			.setName('Default deck sort')
+			.setDesc('Default sorting for the deck list in the browser')
 			.addDropdown(dropdown => dropdown
-				.addOption('created-desc', 'most recently made')
-				.addOption('created-asc', 'oldest first')
-				.addOption('updated-desc', 'recently updated')
-				.addOption('updated-asc', 'least recently updated')
-				.addOption('due-asc', 'due soonest')
-				.addOption('due-desc', 'due latest')
-				.addOption('deck-asc', 'deck (A-Z)')
-				.addOption('deck-desc', 'deck (Z-A)')
+				.addOption('name-asc', 'Name (A-Z)')
+				.addOption('name-desc', 'Name (Z-A)')
+				.addOption('cards-desc', 'Most cards')
+				.addOption('cards-asc', 'Fewest cards')
+				.addOption('due-desc', 'Most due')
+				.addOption('due-asc', 'Least due')
+				.addOption('new-desc', 'Most new cards')
+				.addOption('new-asc', 'Fewest new cards')
+				.addOption('studied-desc', 'Recently studied')
+				.addOption('studied-asc', 'Least recently studied')
+				.setValue(this.plugin.settings.browser.defaultDeckSort)
+				.onChange(async (value) => {
+					this.plugin.settings.browser.defaultDeckSort = value as any;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Default card sort')
+			.setDesc('Default sorting for cards when viewing a deck')
+			.addDropdown(dropdown => dropdown
+				.addOption('created-desc', 'Most recently made')
+				.addOption('created-asc', 'Oldest first')
+				.addOption('updated-desc', 'Recently updated')
+				.addOption('updated-asc', 'Least recently updated')
+				.addOption('due-asc', 'Due soonest')
+				.addOption('due-desc', 'Due latest')
+				.addOption('deck-asc', 'Deck (A-Z)')
+				.addOption('deck-desc', 'Deck (Z-A)')
 				.setValue(this.plugin.settings.browser.defaultSort)
 				.onChange(async (value) => {
 					this.plugin.settings.browser.defaultSort = value as SortOption;
@@ -656,6 +677,53 @@ export class FlashlySettingTab extends PluginSettingTab {
 					this.plugin.settings.browser.parentDeckDefaultBehavior = value;
 					await this.plugin.saveSettings();
 				}));
+
+		// Export Settings
+		new Setting(containerEl)
+			.setName('Export')
+			.setHeading();
+
+		new Setting(containerEl)
+			.setName('Enable AnkiConnect')
+			.setDesc('Sync cards directly to Anki via AnkiConnect API (requires Anki running with AnkiConnect plugin)')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.export.ankiConnectEnabled)
+				.onChange(async (value) => {
+					this.plugin.settings.export.ankiConnectEnabled = value;
+					await this.plugin.saveSettings();
+					void this.display(); // Refresh to show/hide URL setting
+				}));
+
+		if (this.plugin.settings.export.ankiConnectEnabled) {
+			new Setting(containerEl)
+				.setName('AnkiConnect URL')
+				.setDesc('URL where AnkiConnect is listening (default: http://127.0.0.1:8765)')
+				.addText(text => text
+					.setPlaceholder('http://127.0.0.1:8765')
+					.setValue(this.plugin.settings.export.ankiConnectUrl)
+					.onChange(async (value) => {
+						this.plugin.settings.export.ankiConnectUrl = value;
+						await this.plugin.saveSettings();
+					}));
+
+			new Setting(containerEl)
+				.setName('Test connection')
+				.setDesc('Verify that Anki is running and AnkiConnect is working')
+				.addButton(button => button
+					.setButtonText('Test connection')
+					.setTooltip('Test AnkiConnect connection')
+					.onClick(async () => {
+						const service = new AnkiConnectService(this.plugin.settings.export.ankiConnectUrl, this.app);
+
+						const connected = await service.testConnection();
+						if (connected) {
+							const version = await service.getVersion();
+							new Notice(`✅ Connected to AnkiConnect (version ${version})`);
+						} else {
+							new Notice('❌ Failed to connect to AnkiConnect. Make sure Anki is running with AnkiConnect plugin installed.');
+						}
+					}));
+		}
 
 		// Tutorial Settings
 		new Setting(containerEl)
@@ -696,5 +764,20 @@ export class FlashlySettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				})
 			);
+
+		// Support Settings
+		new Setting(containerEl)
+			.setName('Support')
+			.setHeading();
+
+		new Setting(containerEl)
+			.setName('Support the project')
+			.setDesc('If you find Flashly useful, consider supporting development')
+			.addButton(button => button
+				.setButtonText('Support on Ko-fi')
+				.setTooltip('Open Ko-fi donation page')
+				.onClick(() => {
+					window.open('https://ko-fi.com/kingmaws', '_blank');
+				}));
 	}
 }

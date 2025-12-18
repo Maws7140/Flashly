@@ -4,10 +4,9 @@ import { FlashlyCard } from '../models/card';
 import type FlashlyPlugin from '../../main';
 import { ParentDeckReviewModal } from './parent-deck-review-modal';
 import { getAllDescendants } from '../utils/deck-naming';
+import { DeckSortOption } from '../settings';
 
 export const FLASHCARD_BROWSER_VIEW_TYPE = 'flashcard-browser-view';
-
-type DeckSortOption = 'name-asc' | 'name-desc' | 'cards-desc' | 'due-desc' | 'studied-desc';
 
 interface ObsidianApp extends App {
   commands: {
@@ -19,7 +18,7 @@ export class FlashcardBrowserView extends ItemView {
   private viewModel: BrowserViewModel;
   private plugin: FlashlyPlugin;
   private deckSearchQuery = '';
-  private deckSortBy: DeckSortOption = 'name-asc';
+  private deckSortBy: DeckSortOption;
   private component: Component = new Component();
   private isAnimating = false;
   private animationTimeoutId: number | null = null;
@@ -32,6 +31,7 @@ export class FlashcardBrowserView extends ItemView {
     super(leaf);
     this.plugin = plugin;
     this.viewModel = new BrowserViewModel([], plugin.settings.browser.defaultSort);
+    this.deckSortBy = plugin.settings.browser.defaultDeckSort;
   }
 
   getViewType(): string {
@@ -48,7 +48,7 @@ export class FlashcardBrowserView extends ItemView {
 
 
 
-  onOpen(): void {
+  async onOpen(): Promise<void> {
     // Load component
     this.component.load();
 
@@ -95,7 +95,7 @@ export class FlashcardBrowserView extends ItemView {
   }
 
 
-  onClose(): void {
+  async onClose(): Promise<void> {
     // Clean up animation timeout
     if (this.animationTimeoutId !== null) {
       window.clearTimeout(this.animationTimeoutId);
@@ -290,8 +290,13 @@ export class FlashcardBrowserView extends ItemView {
       { value: 'name-asc', label: 'Name (A-Z)' },
       { value: 'name-desc', label: 'Name (Z-A)' },
       { value: 'cards-desc', label: 'Most cards' },
+      { value: 'cards-asc', label: 'Fewest cards' },
       { value: 'due-desc', label: 'Most due' },
+      { value: 'due-asc', label: 'Least due' },
+      { value: 'new-desc', label: 'Most new cards' },
+      { value: 'new-asc', label: 'Fewest new cards' },
       { value: 'studied-desc', label: 'Recently studied' },
+      { value: 'studied-asc', label: 'Least recently studied' },
     ];
 
     for (const opt of sortOptions) {
@@ -303,6 +308,9 @@ export class FlashcardBrowserView extends ItemView {
 
     sortSelect.addEventListener('change', (evt: Event) => {
       this.deckSortBy = (evt.target as HTMLSelectElement).value as DeckSortOption;
+      // Save to settings so it persists
+      this.plugin.settings.browser.defaultDeckSort = this.deckSortBy;
+      void this.plugin.saveSettings();
       this.updateDeckGrid();
     });
   }
@@ -312,7 +320,7 @@ export class FlashcardBrowserView extends ItemView {
    */
   private sortDecks(decks: DeckInfo[]): DeckInfo[] {
     const sorted = [...decks];
-    
+
     switch (this.deckSortBy) {
       case 'name-asc':
         sorted.sort((a, b) => a.name.localeCompare(b.name));
@@ -323,8 +331,20 @@ export class FlashcardBrowserView extends ItemView {
       case 'cards-desc':
         sorted.sort((a, b) => b.totalCards - a.totalCards);
         break;
+      case 'cards-asc':
+        sorted.sort((a, b) => a.totalCards - b.totalCards);
+        break;
       case 'due-desc':
         sorted.sort((a, b) => b.dueToday - a.dueToday);
+        break;
+      case 'due-asc':
+        sorted.sort((a, b) => a.dueToday - b.dueToday);
+        break;
+      case 'new-desc':
+        sorted.sort((a, b) => b.newCards - a.newCards);
+        break;
+      case 'new-asc':
+        sorted.sort((a, b) => a.newCards - b.newCards);
         break;
       case 'studied-desc':
         sorted.sort((a, b) => {
@@ -334,8 +354,16 @@ export class FlashcardBrowserView extends ItemView {
           return b.lastStudied.getTime() - a.lastStudied.getTime();
         });
         break;
+      case 'studied-asc':
+        sorted.sort((a, b) => {
+          if (!a.lastStudied && !b.lastStudied) return 0;
+          if (!a.lastStudied) return -1;
+          if (!b.lastStudied) return 1;
+          return a.lastStudied.getTime() - b.lastStudied.getTime();
+        });
+        break;
     }
-    
+
     return sorted;
   }
 
@@ -576,14 +604,14 @@ export class FlashcardBrowserView extends ItemView {
     const sortSelect = sortContainer.createEl('select', { cls: 'card-sort-select' });
 
     const sortOptions: Array<{ value: SortOption; label: string }> = [
-      { value: 'created-desc', label: 'most recently made' },
-      { value: 'created-asc', label: 'oldest first' },
-      { value: 'updated-desc', label: 'recently updated' },
-      { value: 'updated-asc', label: 'least recently updated' },
-      { value: 'due-asc', label: 'due soonest' },
-      { value: 'due-desc', label: 'due latest' },
-      { value: 'deck-asc', label: 'deck (A-Z)' },
-      { value: 'deck-desc', label: 'deck (Z-A)' },
+      { value: 'created-desc', label: 'Most recently made' },
+      { value: 'created-asc', label: 'Oldest first' },
+      { value: 'updated-desc', label: 'Recently updated' },
+      { value: 'updated-asc', label: 'Least recently updated' },
+      { value: 'due-asc', label: 'Due soonest' },
+      { value: 'due-desc', label: 'Due latest' },
+      { value: 'deck-asc', label: 'Deck (A-Z)' },
+      { value: 'deck-desc', label: 'Deck (Z-A)' },
     ];
 
     const currentSort = this.viewModel.getSortBy();
@@ -596,7 +624,11 @@ export class FlashcardBrowserView extends ItemView {
     }
 
     sortSelect.addEventListener('change', (evt: Event) => {
-      this.viewModel.setSortBy((evt.target as HTMLSelectElement).value as SortOption);
+      const newSort = (evt.target as HTMLSelectElement).value as SortOption;
+      this.viewModel.setSortBy(newSort);
+      // Save to settings so it persists
+      this.plugin.settings.browser.defaultSort = newSort;
+      void this.plugin.saveSettings();
       void this.render();
     });
   }

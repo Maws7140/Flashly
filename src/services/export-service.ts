@@ -165,18 +165,20 @@ export class ExportService {
 		options: ExportOptions
 	): Promise<string> {
 		const exporter = new AnkiExporter();
-		
+
 		// Add Anki-specific options from settings
 		options.ankiDeckPrefix = this.settings().export.ankiDeckPrefix;
 		options.ankiConvertMarkdown = this.settings().export.ankiConvertMarkdown;
 		options.ankiPlainTextMode = this.settings().export.ankiPlainTextMode;
+		options.ankiAttachmentFolder = this.settings().export.ankiAttachmentFolder;
+		options.ankiExcalidrawFolder = this.settings().export.ankiExcalidrawFolder;
 
 		// Generate Anki CSV
 		const ankiCSV = exporter.export(cards, options);
 
 		// Determine filename
 		const timestamp = new Date().toISOString().replace(/:/g, '-').split('.')[0];
-		const filename = `flashly-export-anki-${timestamp}.txt`;
+		const filename = `flashly-export-anki-${timestamp}.csv`;
 
 		// Save file to vault
 		const filePath = await this.saveFile(filename, ankiCSV);

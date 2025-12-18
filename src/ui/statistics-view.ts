@@ -37,12 +37,12 @@ export class StatisticsView extends ItemView {
 	}
 
 
-	onOpen(): void {
+	async onOpen(): Promise<void> {
 		this.queueRender();
 	}
 
 
-	onClose(): void {
+	async onClose(): Promise<void> {
 		this.containerEl.empty();
 	}
 

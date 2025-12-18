@@ -7,8 +7,8 @@ import { FlashlyCard } from '../../models/card';
 /**
  * Supported export formats
  */
-export type ExportFormat = 
-	| 'anki'         // Anki .apkg format
+export type ExportFormat =
+	| 'anki'         // AnkiConnect format (CSV + media upload)
 	| 'csv'          // Generic CSV with all fields
 	| 'csv-quizlet'  // Quizlet-compatible CSV
 	| 'json'         // JSON format
@@ -31,6 +31,8 @@ export interface ExportOptions {
 	ankiDeckPrefix?: string;
 	ankiConvertMarkdown?: boolean;
 	ankiPlainTextMode?: boolean;
+	ankiAttachmentFolder?: string;
+	ankiExcalidrawFolder?: string;
 }
 
 /**

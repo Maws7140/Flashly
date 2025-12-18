@@ -3648,6 +3648,47 @@
   font-style: italic;
 }
 
+/* Export modal deck selection */
+.export-deck-selection {
+  margin-top: 12px;
+  margin-bottom: 16px;
+}
+
+.export-deck-search-container {
+  margin-bottom: 12px;
+}
+
+.export-deck-search-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 0.95em;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  transition: border-color 0.2s;
+}
+
+.export-deck-search-input:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+}
+
+.export-deck-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.export-deck-no-results {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.hidden {
+  display: none !important;
+}
+
 /* ========== TUTORIAL MODAL ========== */
 
 .flashly-tutorial-modal {
@@ -3950,4 +3991,20 @@
   font-size: 12px;
   color: var(--text-muted);
   font-style: italic;
+}
+
+/* ========== INFO BOX ========== */
+.flashly-info-box {
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.flashly-info-box p {
+  margin: 0;
+  color: var(--text-normal);
+  font-size: 14px;
+  line-height: 1.5;
 }

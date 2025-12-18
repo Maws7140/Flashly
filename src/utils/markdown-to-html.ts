@@ -12,9 +12,11 @@ interface ConversionOptions {
 
 export class MarkdownToHTMLConverter {
   private codeBlockPlaceholders: Map<string, string>;
+  private htmlTagPlaceholders: Map<string, string>;
   
   constructor(private options: ConversionOptions) {
     this.codeBlockPlaceholders = new Map();
+    this.htmlTagPlaceholders = new Map();
   }
 
   convert(markdown: string): string {
@@ -43,11 +45,18 @@ export class MarkdownToHTMLConverter {
 
     // Phase 4: Inline elements (order matters!)
     html = this.convertImages(html);  // Images BEFORE links
-    html = this.convertInlineCode(html);
-    html = this.convertLinks(html);
+    html = this.convertLinks(html);   // Links
+    html = this.convertInlineCode(html); // Inline code (now protected)
+    
+    // Protect HTML tags (including those from convertImages, convertLinks, and convertWikilinks)
+    html = this.protectHTMLTags(html);
+    
     html = this.convertBold(html);
     html = this.convertItalic(html);
     html = this.convertStrikethrough(html);
+    
+    // Restore HTML tags
+    html = this.restoreHTMLTags(html);
 
     // Phase 5: Restore code blocks
     html = this.restoreCodeBlocks(html);
@@ -67,6 +76,22 @@ export class MarkdownToHTMLConverter {
       this.codeBlockPlaceholders.set(placeholder, html);
       return placeholder;
     });
+  }
+
+  private protectHTMLTags(text: string): string {
+    // Match HTML tags and replace with placeholders
+    return text.replace(/<[^>]+>/g, (match) => {
+      const placeholder = `<<<HTMLTAG${Date.now()}N${this.htmlTagPlaceholders.size}>>>`;
+      this.htmlTagPlaceholders.set(placeholder, match);
+      return placeholder;
+    });
+  }
+
+  private restoreHTMLTags(text: string): string {
+    for (const [placeholder, html] of this.htmlTagPlaceholders.entries()) {
+      text = text.replace(placeholder, html);
+    }
+    return text;
   }
 
   private restoreCodeBlocks(text: string): string {
@@ -210,7 +235,12 @@ export class MarkdownToHTMLConverter {
   }
 
   private convertInlineCode(text: string): string {
-    return text.replace(/`([^`]+)`/g, '<code>$1</code>');
+    return text.replace(/`([^`]+)`/g, (match, code) => {
+      const placeholder = `<<<INLINECODE${Date.now()}N${this.htmlTagPlaceholders.size}>>>`;
+      const html = `<code>${this.escapeHTML(code)}</code>`;
+      this.htmlTagPlaceholders.set(placeholder, html);
+      return placeholder;
+    });
   }
 
   private convertImages(text: string): string {

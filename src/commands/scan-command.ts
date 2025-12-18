@@ -87,8 +87,16 @@ export class ScanCommand {
 
             const existing = this.storage.getCard(card.id);
             if (existing) {
-              // Update existing card
-              this.storage.updateCard(card.id, card);
+              // Preserve fsrsCard and created, only update content fields
+              this.storage.updateCard(card.id, {
+                front: card.front,
+                back: card.back,
+                deck: card.deck,
+                tags: card.tags,
+                needsFilling: card.needsFilling,
+                source: card.source
+                // fsrsCard and created are NOT included - they are preserved
+              });
               stats.cardsUpdated++;
             } else {
               // Add new card

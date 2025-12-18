@@ -33,6 +33,10 @@ export interface ExportSettings {
 	ankiDeckPrefix: string;
 	ankiConvertMarkdown: boolean;
 	ankiPlainTextMode: boolean;
+	ankiConnectUrl: string;
+	ankiConnectEnabled: boolean;
+	ankiAttachmentFolder: string;
+	ankiExcalidrawFolder: string;
 }
 
 export interface TutorialSettings {
@@ -45,8 +49,21 @@ export interface DeveloperSettings {
 	enableDebugLogging: boolean;
 }
 
+export type DeckSortOption =
+  | 'name-asc'
+  | 'name-desc'
+  | 'cards-asc'
+  | 'cards-desc'
+  | 'due-asc'
+  | 'due-desc'
+  | 'new-asc'
+  | 'new-desc'
+  | 'studied-asc'
+  | 'studied-desc';
+
 export interface BrowserSettings {
-	defaultSort: SortOption;
+	defaultSort: SortOption;                   // Default sort for cards within a deck
+	defaultDeckSort: DeckSortOption;           // Default sort for deck list
 	showHierarchy: boolean;                    // Show deck hierarchy with visual grouping
 	hierarchyShowFullPath: boolean;            // Show "Math/Algebra" vs just "Algebra"
 	parentDeckDefaultBehavior: 'ask' | 'all' | 'direct';  // Default for parent deck review
@@ -106,10 +123,15 @@ export const DEFAULT_SETTINGS: FlashlySettings = {
 		csvIncludeBOM: true,
 		ankiDeckPrefix: 'Flashly',
 		ankiConvertMarkdown: true,
-		ankiPlainTextMode: false
+		ankiPlainTextMode: false,
+		ankiConnectUrl: 'http://127.0.0.1:8765',
+		ankiConnectEnabled: false,
+		ankiAttachmentFolder: '',
+		ankiExcalidrawFolder: '.excalidraw'
 	},
 	browser: {
 		defaultSort: 'created-desc',
+		defaultDeckSort: 'name-asc',
 		showHierarchy: true,
 		hierarchyShowFullPath: true,
 		parentDeckDefaultBehavior: 'ask'

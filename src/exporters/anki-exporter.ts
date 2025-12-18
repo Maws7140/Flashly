@@ -4,9 +4,9 @@ import { AnkiTransformer, AnkiCard } from '../services/export-transformers/anki-
 
 /**
  * Anki Exporter
- * 
- * Note: Full APKG export requires the anki-apkg-export library which has bundling issues.
- * For now, we export Anki-compatible CSV that can be imported directly into Anki.
+ *
+ * Exports flashcards to Anki-compatible CSV format.
+ * This CSV can be imported directly into Anki via File > Import.
  */
 export class AnkiExporter {
   private transformer: AnkiTransformer;
@@ -21,25 +21,25 @@ export class AnkiExporter {
    */
   export(cards: FlashlyCard[], options: ExportOptions): string {
     const ankiCards = this.transformer.transform(cards, options);
-    
+
     // Generate CSV in Anki import format
     // Format: Front\tBack\tTags\tDeck
     const lines: string[] = [];
-    
+
     // Add header comment
     lines.push('#separator:tab');
     lines.push('#html:true');
     lines.push('#deck column:4');
     lines.push('#tags column:3');
     lines.push('');
-    
+
     // Add cards
     for (const card of ankiCards) {
       const front = this.escapeForAnki(card.fields.Front);
       const back = this.escapeForAnki(card.fields.Back);
       const tags = card.tags.join(' ');
       const deck = card.deckName;
-      
+
       lines.push(`${front}\t${back}\t${tags}\t${deck}`);
     }
 
@@ -51,7 +51,7 @@ export class AnkiExporter {
    */
   exportMultipleDecks(cards: FlashlyCard[], options: ExportOptions): Map<string, string> {
     const ankiCards = this.transformer.transform(cards, options);
-    
+
     // Group cards by deck
     const deckMap = new Map<string, AnkiCard[]>();
     for (const card of ankiCards) {
@@ -66,17 +66,17 @@ export class AnkiExporter {
     // Create a separate CSV for each deck
     for (const [deckName, deckCards] of deckMap.entries()) {
       const lines: string[] = [];
-      
+
       lines.push('#separator:tab');
       lines.push('#html:true');
       lines.push('#deck:' + deckName);
       lines.push('');
-      
+
       for (const card of deckCards) {
         const front = this.escapeForAnki(card.fields.Front);
         const back = this.escapeForAnki(card.fields.Back);
         const tags = card.tags.join(' ');
-        
+
         lines.push(`${front}\t${back}\t${tags}`);
       }
 

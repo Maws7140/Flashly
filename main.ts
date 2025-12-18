@@ -109,7 +109,7 @@ export default class FlashlyPlugin extends Plugin {
 		});
 
 		// Add export command
-		this.exportCommand = new ExportCommand(this.app, this.exportService);
+		this.exportCommand = new ExportCommand(this.app, this.exportService, () => this.settings);
 		this.addCommand({
 			id: this.exportCommand.getId(),
 			name: this.exportCommand.getName(),

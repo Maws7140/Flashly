@@ -49,7 +49,7 @@ export class QuizView extends ItemView {
 
 
 
-	onOpen(): void {
+	async onOpen(): Promise<void> {
 		this.component = new Component();
 		this.component.load();
 		void this.render();
@@ -57,7 +57,7 @@ export class QuizView extends ItemView {
 	}
 
 
-	onClose(): void {
+	async onClose(): Promise<void> {
 		if (this.debounceTimer !== null) {
 			window.clearTimeout(this.debounceTimer);
 			this.debounceTimer = null;

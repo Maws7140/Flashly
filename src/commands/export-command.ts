@@ -5,6 +5,7 @@
 import { App, Notice } from 'obsidian';
 import { ExportService } from '../services/export-service';
 import { ExportModal } from '../ui/export-modal';
+import { FlashlySettings } from '../settings';
 
 export class ExportCommand {
 	private id = 'export-flashcards';
@@ -12,7 +13,8 @@ export class ExportCommand {
 
 	constructor(
 		private app: App,
-		private exportService: ExportService
+		private exportService: ExportService,
+		private settings: () => FlashlySettings
 	) {}
 
 	getId(): string {
@@ -34,7 +36,7 @@ export class ExportCommand {
 			}
 
 			// Open export modal
-			const modal = new ExportModal(this.app, this.exportService);
+			const modal = new ExportModal(this.app, this.exportService, this.settings());
 			modal.open();
 		};
 	}

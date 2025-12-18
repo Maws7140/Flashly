@@ -6,7 +6,16 @@
       "Bash(npx tsc:*)",
       "Bash(npm install)",
       "Bash(npm test:*)",
-      "Bash(node esbuild.config.mjs:*)"
+      "Bash(node esbuild.config.mjs:*)",
+      "mcp__exa__get_code_context_exa",
+      "Bash(npm install:*)",
+      "mcp__exa__web_search_exa",
+      "Bash(npm uninstall:*)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:krmanik.github.io)",
+      "WebFetch(domain:genanki.js.org)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
