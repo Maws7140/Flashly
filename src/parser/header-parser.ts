@@ -1,17 +1,14 @@
 import { FlashlyCard, createFlashlyCard } from '../models/card';
 import { createEmptyCard } from 'ts-fsrs';
 import { TFile, CachedMetadata, App } from 'obsidian';
-import { getDeckName } from '../utils/deck-naming';
+import { DeckNamingConfig, getDeckName } from '../utils/deck-naming';
 
 /**
  * Settings for header-based parser
  */
-export interface HeaderParserSettings {
+export interface HeaderParserSettings extends DeckNamingConfig {
 	enabled: boolean;
-	flashcardTags: string[];
 	headerLevels: number[];
-	deckNamePriority: ('frontmatter' | 'title' | 'subtags')[];
-	useSubtags: boolean;
 	answerTerminator: 'next-header' | 'blank-line' | 'hr';
 	createEmptyCards: boolean;
 	enableExclusion: boolean;

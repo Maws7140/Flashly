@@ -1,5 +1,17 @@
 import { TFile, CachedMetadata } from 'obsidian';
 
+export interface DeckNamingConfig {
+	deckNamePriority: ('frontmatter' | 'title' | 'subtags')[];
+	useSubtags: boolean;
+	flashcardTags: string[];
+}
+
+export const DEFAULT_DECK_NAMING_CONFIG: DeckNamingConfig = {
+	deckNamePriority: ['frontmatter', 'title', 'subtags'],
+	useSubtags: true,
+	flashcardTags: ['flashcards', 'cards']
+};
+
 /**
  * Get deck name using priority: frontmatter → subtags → title
  * This is the single source of truth for deck naming across all parsers.

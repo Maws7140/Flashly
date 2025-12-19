@@ -1,7 +1,7 @@
 import { FlashlyCard, createFlashlyCard } from '../models/card';
 import { createEmptyCard } from 'ts-fsrs';
 import { App, TFile } from 'obsidian';
-import { getDeckName } from '../utils/deck-naming';
+import { DeckNamingConfig, DEFAULT_DECK_NAMING_CONFIG, getDeckName } from '../utils/deck-naming';
 
 /**
  * Settings for inline parser
@@ -14,16 +14,22 @@ export interface InlineParserSettings {
 	createEmptyCards: boolean;   // Create cards with empty backs
 }
 
+const DEFAULT_INLINE_DECK_CONFIG: DeckNamingConfig = DEFAULT_DECK_NAMING_CONFIG;
+
 /**
  * Inline Parser for Phase 1
  * Supports: Q::A, ??, and {cloze} formats
  */
 export class InlineParser {
+	private deckConfig: DeckNamingConfig;
+
 	constructor(
 		private settings: InlineParserSettings,
 		private app?: App,
-		private flashcardTags?: string[]
-	) {}
+		deckConfig?: DeckNamingConfig
+	) {
+		this.deckConfig = deckConfig ?? DEFAULT_INLINE_DECK_CONFIG;
+	}
 
 	/**
 	 * Extract deck name from file path
@@ -54,9 +60,9 @@ export class InlineParser {
 		const deckName = getDeckName(
 			file,
 			metadata,
-			['frontmatter', 'subtags', 'title'], // Default priority
-			true, // useSubtags
-			this.flashcardTags || ['flashcards']
+			this.deckConfig.deckNamePriority,
+			this.deckConfig.useSubtags,
+			this.deckConfig.flashcardTags
 		);
 
 		return this.parseContent(content, file.path, deckName);

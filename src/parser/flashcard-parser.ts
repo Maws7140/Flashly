@@ -24,7 +24,15 @@ export class FlashcardParser {
 		private settings: FlashcardParserSettings,
 		private app: App
 	) {
-		this.inlineParser = new InlineParser(settings.inline, app, settings.header.flashcardTags);
+		this.inlineParser = new InlineParser(
+			settings.inline,
+			app,
+			{
+				flashcardTags: settings.header.flashcardTags,
+				deckNamePriority: settings.header.deckNamePriority,
+				useSubtags: settings.header.useSubtags
+			}
+		);
 		this.headerParser = new HeaderParser(settings.header, app);
 	}
 

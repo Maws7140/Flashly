@@ -4,6 +4,7 @@
  */
 
 import { InlineParser, InlineParserSettings } from '../src/parser/inline-parser';
+import { createMockApp, createMockTFile, createMockCachedMetadata } from './setup';
 
 describe('InlineParser', () => {
   let parser: InlineParser;
@@ -404,6 +405,78 @@ The {cloze} format is also supported.`;
 
       expect(cards).toHaveLength(1);
       expect(cards[0].deck).toBe('My-Note_2024');
+    });
+  });
+
+  describe('Deck naming with metadata', () => {
+    const deckConfig = {
+      flashcardTags: ['flashcards'],
+      deckNamePriority: ['frontmatter', 'subtags', 'title'] as ('frontmatter' | 'title' | 'subtags')[],
+      useSubtags: true
+    };
+
+    it('uses frontmatter deck when configured', async () => {
+      const mockApp = createMockApp();
+      const parserWithDecks = new InlineParser(settings, mockApp, deckConfig);
+      const file = createMockTFile('Biology.md', 'What is a cell::Basic unit of life');
+      const metadata = createMockCachedMetadata({
+        frontmatter: {
+          deck: 'Custom Deck',
+          tags: ['flashcards']
+        }
+      });
+
+      mockApp.metadataCache.getFileCache = jest.fn(() => metadata);
+      mockApp.vault.read = jest.fn(() => Promise.resolve(file._content || ''));
+
+      const cards = await parserWithDecks.parseWithFile(file);
+      expect(cards).toHaveLength(1);
+      expect(cards[0].deck).toBe('Custom Deck');
+    });
+
+    it('derives deck from subtags when frontmatter lacks deck', async () => {
+      const mockApp = createMockApp();
+      const parserWithDecks = new InlineParser(settings, mockApp, deckConfig);
+      const file = createMockTFile('Chemistry.md', 'What is H2O::Water');
+      const metadata = createMockCachedMetadata({
+        frontmatter: {
+          tags: ['flashcards/biology']
+        }
+      });
+
+      mockApp.metadataCache.getFileCache = jest.fn(() => metadata);
+      mockApp.vault.read = jest.fn(() => Promise.resolve(file._content || ''));
+
+      const cards = await parserWithDecks.parseWithFile(file);
+      expect(cards).toHaveLength(1);
+      expect(cards[0].deck).toBe('biology');
+    });
+
+    it('falls back to title when subtags are disabled', async () => {
+      const mockApp = createMockApp();
+      const parserWithDecks = new InlineParser(settings, mockApp, {
+        ...deckConfig,
+        useSubtags: false
+      });
+      const file = createMockTFile('Physics.md', 'Law::Force equals mass times acceleration');
+      const metadata = createMockCachedMetadata({
+        tags: [
+          {
+            tag: '#flashcards/physics/mechanics',
+            position: {
+              start: { line: 0, col: 0, offset: 0 },
+              end: { line: 0, col: 25, offset: 25 }
+            }
+          }
+        ]
+      });
+
+      mockApp.metadataCache.getFileCache = jest.fn(() => metadata);
+      mockApp.vault.read = jest.fn(() => Promise.resolve(file._content || ''));
+
+      const cards = await parserWithDecks.parseWithFile(file);
+      expect(cards).toHaveLength(1);
+      expect(cards[0].deck).toBe('Physics');
     });
   });
 });
