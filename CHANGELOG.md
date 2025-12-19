@@ -1,5 +1,12 @@
 # Flashly Plugin - Changelog
 
+## [1.0.2] - 2025-01-XX
+
+### Changes
+- Update details for version 1.0.2
+
+---
+
 ## [1.0.1] - 2025-01-XX
 
 ### Changes
