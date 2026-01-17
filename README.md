@@ -38,6 +38,29 @@ The basic structural unit of all living organisms.
 Mitochondria are the powerhouse of the cell, responsible for producing ATP.
 ```
 
+### Audio Support
+
+Flashly supports audio files in flashcards for enhanced learning:
+
+- **Audio in flashcards**: Embed audio files using Obsidian wikilinks (`![[audio.mp3]]`)
+- **Audio playback**: Audio controls in review sessions and quiz questions
+- **Supported formats**: MP3, WAV, OGG, M4A, FLAC, AAC
+- **Audio transcription**: Optional AI transcription for quiz generation (transcribes audio content to help AI generate better questions)
+
+**Example with audio:**
+```markdown
+What is the Spanish word for "hello"?
+![[hello-spanish.mp3]]
+??
+Hola
+
+Listen to the pronunciation::![[pronunciation.mp3]]
+```
+
+**Audio settings** (Settings → Flashly → Review):
+- **Auto-play audio**: Automatically play audio when card is shown (disabled by default)
+- **Stop on flip**: Stop audio playback when flipping to answer side
+
 ### Smart Deck Organization
 
 - **Automatic deck creation** from note filenames
@@ -349,6 +372,7 @@ Generate quizzes automatically from your flashcards using rule-based algorithms:
 - Creative variations on concepts
 - Explanation generation
 - Adaptive difficulty
+- Audio transcription support (AI can understand audio content in flashcards when generating questions)
 
 **Privacy Note:** When using cloud providers (OpenAI/Anthropic), your flashcard content is sent to their servers. Use local models if you need complete privacy.
 
