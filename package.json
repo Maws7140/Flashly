@@ -24,7 +24,7 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/SamW7140/Flashly-"
+		"url": "https://github.com/Maws7140/Flashly"
 	},
 	"devDependencies": {
 		"@types/jest": "^30.0.0",

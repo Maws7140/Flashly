@@ -276,9 +276,9 @@ MIT License - See LICENSE file for details
 ## Support
 
 - [Support on Ko-fi](https://ko-fi.com/kingmaws) - If you find Flashly useful, consider supporting development
-- [Report a Bug](https://github.com/SamW7140/Flashly-/issues)
-- [Request a Feature](https://github.com/SamW7140/Flashly-/issues)
-- [Documentation](https://github.com/SamW7140/Flashly-/tree/master/docs)
+- [Report a Bug](https://github.com/Maws7140/Flashly/issues)
+- [Request a Feature](https://github.com/Maws7140/Flashly/issues)
+- [Documentation](https://github.com/Maws7140/Flashly/tree/master/docs)
 
 ## Quiz Generation
 

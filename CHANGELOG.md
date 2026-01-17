@@ -1,5 +1,14 @@
 # Flashly Plugin - Changelog
 
+## [1.0.3] - 2025-01-XX
+
+### Changes
+- Added audio support documentation to README
+- Updated .gitignore to exclude developer files (coverage, scripts, test files)
+- Version bump to 1.0.3
+
+---
+
 ## [1.0.2] - 2025-01-XX
 
 ### Changes
