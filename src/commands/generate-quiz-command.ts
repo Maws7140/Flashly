@@ -294,6 +294,9 @@ class GenerateQuizModal extends Modal {
 	}
 
 	async generateQuiz() {
+		// Show loading notice (declare outside try so it's accessible in catch)
+		let loadingNotice: Notice | null = null;
+
 		try {
 			// Validate at least one question type
 			if (!this.config.includeMultipleChoice && !this.config.includeFillBlank && !this.config.includeTrueFalse) {
@@ -330,7 +333,13 @@ class GenerateQuizModal extends Modal {
 			}
 
 			// Show loading notice
-			const loadingNotice = new Notice('Generating quiz...', 0);
+			const useVoiceAI = this.plugin.settings.quiz.voiceAI?.enabled;
+			loadingNotice = new Notice(
+				useVoiceAI
+					? 'Transcribing audio and generating quiz...'
+					: 'Generating quiz...',
+				0
+			);
 
 			// Generate questions
 			let questions;
@@ -339,10 +348,10 @@ class GenerateQuizModal extends Modal {
 			if (this.config.useAI && this.plugin.settings.quiz.enabled) {
 				// Use AI generator
 				generationMethod = 'ai-generated';
-				const aiGenerator = new AIQuizGenerator(this.plugin.settings.quiz, this.plugin.logger);
+				const aiGenerator = new AIQuizGenerator(this.plugin.settings.quiz, this.app, this.plugin.logger);
 				questions = await aiGenerator.generateQuestions(cards, this.config);
 				loadingNotice.hide();
-				new Notice('Quiz generated with AI! 🤖');
+				new Notice(useVoiceAI ? 'Quiz generated with AI (audio-aware)! 🤖' : 'Quiz generated with AI! 🤖');
 			} else {
 				// Use traditional generator
 				generationMethod = 'traditional';
@@ -379,8 +388,12 @@ class GenerateQuizModal extends Modal {
 
 			this.close();
 		} catch (error) {
+			if (loadingNotice) {
+				loadingNotice.hide();
+			}
 			console.error('Failed to generate quiz:', error);
-			new Notice(`Failed to generate quiz: ${error.message}`);
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			new Notice(`Failed to generate quiz: ${errorMessage}`);
 		}
 	}
 

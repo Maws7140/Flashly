@@ -69,6 +69,8 @@ export class StartReviewCommand {
 
 		const modal = new ReviewModal(this.app, viewModel, {
 			enableKeyboardShortcuts: settings.review.enableKeyboardShortcuts,
+			audioAutoPlay: settings.review.audioAutoPlay,
+			audioStopOnFlip: settings.review.audioStopOnFlip,
 			onComplete: (summary) => {
 				this.storage.recordReviewSession(summary);
 				void this.storage.save();

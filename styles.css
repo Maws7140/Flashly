@@ -1441,6 +1441,18 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+.flashly-card-content audio {
+  width: 100%;
+  max-width: 100%;
+  margin: 8px 0;
+}
+
+.flashly-review-modal audio,
+.card-face audio {
+  width: 100%;
+  margin: 8px 0;
+}
+
 .flashly-card-content ul,
 .flashly-card-content ol {
   margin: 8px 0;

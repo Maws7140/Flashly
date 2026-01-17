@@ -10,6 +10,12 @@ export interface FlashcardParserSettings {
 	inline: InlineParserSettings;
 	header: HeaderParserSettings;
 	mixedFormats: boolean; // Allow both inline and header in same note
+	/**
+	 * List of folder paths (relative to vault root) that should be excluded
+	 * from automatic vault parsing (scan, deck creation, etc.).
+	 * Example: ["Templates", "Archive/OldNotes"]
+	 */
+	excludedFolders?: string[];
 }
 
 /**
@@ -75,9 +81,10 @@ export class FlashcardParser {
 	 */
 	async parseVault(): Promise<FlashlyCard[]> {
 		const files = this.app.vault.getMarkdownFiles();
+		const filteredFiles = this.filterExcludedFiles(files);
 		const allCards: FlashlyCard[] = [];
 
-		for (const file of files) {
+		for (const file of filteredFiles) {
 			const cards = await this.parseFile(file);
 			allCards.push(...cards);
 		}
@@ -92,8 +99,9 @@ export class FlashcardParser {
 	 */
 	async parseFiles(files: TFile[]): Promise<FlashlyCard[]> {
 		const allCards: FlashlyCard[] = [];
+		const filteredFiles = this.filterExcludedFiles(files);
 
-		for (const file of files) {
+		for (const file of filteredFiles) {
 			const cards = await this.parseFile(file);
 			allCards.push(...cards);
 		}
@@ -116,6 +124,32 @@ export class FlashcardParser {
 		}
 
 		return unique;
+	}
+
+	/**
+	 * Filter out files that live in excluded folders.
+	 * Excluded folder paths are matched as path prefixes, e.g.
+	 * "Templates" will exclude "Templates/Note.md".
+	 */
+	private filterExcludedFiles(files: TFile[]): TFile[] {
+		const excluded = (this.settings.excludedFolders ?? [])
+			.map(folder => folder.trim())
+			.filter(folder => folder.length > 0);
+
+		if (excluded.length === 0) {
+			return files;
+		}
+
+		const isExcludedPath = (path: string): boolean => {
+			return excluded.some(folder => {
+				// Normalize to forward slashes, ignore leading "./"
+				const normalizedFolder = folder.replace(/\\/g, '/').replace(/^\.?\//, '');
+				const normalizedPath = path.replace(/\\/g, '/');
+				return normalizedPath === normalizedFolder || normalizedPath.startsWith(normalizedFolder + '/');
+			});
+		};
+
+		return files.filter(file => !isExcludedPath(file.path));
 	}
 
 	/**
@@ -179,5 +213,6 @@ export function createDefaultParserSettings(): FlashcardParserSettings {
 			exclusionComment: 'flashcard:skip',
 		},
 		mixedFormats: true,
+		excludedFolders: [],
 	};
 }

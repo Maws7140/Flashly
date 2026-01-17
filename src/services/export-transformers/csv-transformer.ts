@@ -74,11 +74,19 @@ export class CSVTransformer implements ExportTransformer<CSVRow[]> {
 	/**
 	 * Clean text for CSV export
 	 * - Strip markdown formatting
+	 * - Convert audio wikilinks to filename references
 	 * - Handle newlines
 	 * - Remove special characters that might break CSV
 	 */
 	private cleanText(text: string): string {
 		return text
+			// Convert audio wikilinks to filename references: ![[audio.mp3]] -> [audio.mp3]
+			.replace(/!\[\[([^\]]+\.(mp3|wav|ogg|m4a|flac|aac))(?:\|[^\]]*)?\]\]/gi, (match, filename) => {
+				// Extract just the filename (handle pipes for alt text)
+				const pathParts = filename.split('|');
+				const audioFile = pathParts[0].trim();
+				return `[${audioFile}]`;
+			})
 			.replace(/\r\n/g, ' ')  // Replace CRLF with space
 			.replace(/\n/g, ' ')     // Replace LF with space
 			.trim();
@@ -134,6 +142,13 @@ export class QuizletCSVTransformer implements ExportTransformer<{ term: string; 
 			.replace(/`([^`]+)`/g, '$1')
 			// Remove images
 			.replace(/!\[([^\]]*)\]\([^)]+\)/g, '')
+			// Convert audio wikilinks to filename references: ![[audio.mp3]] -> [audio.mp3]
+			.replace(/!\[\[([^\]]+\.(mp3|wav|ogg|m4a|flac|aac))(?:\|[^\]]*)?\]\]/gi, (match, filename) => {
+				// Extract just the filename (handle pipes for alt text)
+				const pathParts = filename.split('|');
+				const audioFile = pathParts[0].trim();
+				return `[${audioFile}]`;
+			})
 			// Replace newlines with spaces
 			.replace(/\r\n/g, ' ')
 			.replace(/\n/g, ' ')

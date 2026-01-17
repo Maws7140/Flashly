@@ -121,8 +121,9 @@ export class AnkiTransformer implements ExportTransformer<AnkiCard[]> {
   }
 
   private generateGuid(card: FlashlyCard): string {
-    // Generate a stable GUID based on card content
-    const content = `${card.front}${card.back}${card.deck}`;
+    // Generate a stable GUID based on card content, source file, and line number
+    // Include source location to ensure header-based cards from different locations are unique
+    const content = `${card.front}${card.back}${card.deck}${card.source.file}${card.source.line}`;
     return this.simpleHash(content);
   }
 
@@ -140,7 +141,8 @@ export class AnkiTransformer implements ExportTransformer<AnkiCard[]> {
    * CORRECTED LOGIC:
    * Perform regex replacement on raw markdown.
    * Matches logic from src/utils.ts in reference: convertImagesMDToHtml
-   * Replace ![[image.png]] with <img src='ankiFilename'> BEFORE converting to HTML
+   * Replace ![[image.png]] with <img src='ankiFilename'> or ![[audio.mp3]] with <audio src='ankiFilename'>
+   * BEFORE converting to HTML
    */
   private replaceMediaInMarkdown(markdown: string, media: MediaReference[]): string {
     let result = markdown;
@@ -151,13 +153,21 @@ export class AnkiTransformer implements ExportTransformer<AnkiCard[]> {
       // We escape the string to be regex-safe
       const escapedOriginal = ref.originalPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       
-      // Strict replacement: ![[path/img.png]] becomes <img src='ankiFilename'>
+      // Create appropriate HTML tag based on media type
       // Anki strictly requires the filename ONLY in the src attribute
-      const imgTag = `<img src='${ref.ankiFilename}'>`;
+      let htmlTag: string;
+      if (ref.type === 'audio') {
+        htmlTag = `<audio src='${ref.ankiFilename}' controls></audio>`;
+      } else if (ref.type === 'video') {
+        htmlTag = `<video src='${ref.ankiFilename}' controls></video>`;
+      } else {
+        // Default to image tag
+        htmlTag = `<img src='${ref.ankiFilename}'>`;
+      }
       
       // Replace all instances
       const regex = new RegExp(escapedOriginal, 'g');
-      result = result.replace(regex, imgTag);
+      result = result.replace(regex, htmlTag);
     }
 
     return result;

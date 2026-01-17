@@ -19,7 +19,7 @@ export class MediaExtractor {
 
 	/**
 	 * Extract media references from Markdown content
-	 * Uses reference implementation regex pattern and filters for .png, .jpg, .svg only
+	 * Extracts images (.png, .jpg, .svg) and audio files (.mp3, .wav, .ogg, .m4a, .flac, .aac)
 	 */
 	extractFromMarkdown(content: string, sourcePath: string): MediaReference[] {
 		const references: MediaReference[] = [];
@@ -37,14 +37,24 @@ export class MediaExtractor {
 			const path = pathParts[0].trim();
 			const alt = pathParts[1]?.trim();
 
-			// Filter strictly for .png, .jpg, .svg extensions (reference implementation requirement)
+			// Check file extension
 			const ext = path.split('.').pop()?.toLowerCase();
-			if (!ext || !['png', 'jpg', 'svg'].includes(ext)) {
+			if (!ext) {
+				continue;
+			}
+
+			// Image extensions: .png, .jpg, .svg (reference implementation requirement)
+			const imageExts = ['png', 'jpg', 'svg'];
+			// Audio extensions: .mp3, .wav, .ogg, .m4a, .flac, .aac
+			const audioExts = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'];
+
+			// Skip if not a known media extension
+			if (!imageExts.includes(ext) && !audioExts.includes(ext)) {
 				continue;
 			}
 
 			// Use proper path resolution instead of manual path construction
-			// This resolves the actual vault path regardless of where the image is stored
+			// This resolves the actual vault path regardless of where the media is stored
 			const ref = this.createMediaReference(path, sourcePath, fullMatch, alt);
 			if (ref) {
 				references.push(ref);

@@ -74,32 +74,65 @@ export class AnkiConnectService {
   }
 
   /**
+   * Check if notes can be added (duplicate detection)
+   */
+  async canAddNotes(notes: Array<{
+    deckName: string;
+    modelName: string;
+    fields: { Front: string; Back: string };
+    tags: string[];
+    options?: { allowDuplicate: boolean };
+    guid?: string;
+  }>): Promise<boolean[]> {
+    try {
+      const result = await this.invoke('canAddNotes', 6, { notes });
+      return result;
+    } catch (error) {
+      console.error('[AnkiConnect] Failed to check if notes can be added:', error);
+      // If the check fails, assume all notes can be added (fallback)
+      return notes.map(() => true);
+    }
+  }
+
+  /**
    * Add a single note to Anki
    */
   async addNote(
     deckName: string,
     front: string,
     back: string,
-    tags: string[] = []
+    tags: string[] = [],
+    guid?: string
   ): Promise<number | null> {
     try {
-      const noteId = await this.invoke('addNote', 6, {
-        note: {
-          deckName,
-          modelName: 'Basic',
-          fields: {
-            Front: front,
-            Back: back
-          },
-          tags,
-          options: {
-            allowDuplicate: false
-          }
+      const notePayload: any = {
+        deckName,
+        modelName: 'Basic',
+        fields: {
+          Front: front,
+          Back: back
+        },
+        tags,
+        options: {
+          allowDuplicate: false
         }
+      };
+
+      // Add GUID if provided to help with duplicate detection
+      // Anki uses Front+Back for duplicate detection, but GUID can help identify unique cards
+      if (guid) {
+        notePayload.guid = guid;
+      }
+
+      const noteId = await this.invoke('addNote', 6, {
+        note: notePayload
       });
       return noteId;
     } catch (error) {
       console.error('[AnkiConnect] Failed to add note:', error);
+      // Log the card content for debugging
+      console.error('[AnkiConnect] Front (first 50 chars):', front.substring(0, 50));
+      console.error('[AnkiConnect] Back (first 50 chars):', back.substring(0, 50));
       throw error;
     }
   }
@@ -166,29 +199,64 @@ export class AnkiConnectService {
       }
     }
 
-    // 5. Add Notes
+    // 5. Check which notes can be added (duplicate detection)
+    console.log(`[AnkiConnect] Checking ${ankiCards.length} notes for duplicates...`);
+    const notePayloads = ankiCards.map(card => ({
+      deckName: card.deckName,
+      modelName: 'Basic',
+      fields: {
+        Front: card.fields.Front,
+        Back: card.fields.Back
+      },
+      tags: card.tags,
+      options: {
+        allowDuplicate: false
+      },
+      ...(card.guid ? { guid: card.guid } : {})
+    }));
+
+    const canAdd = await this.canAddNotes(notePayloads);
+    const duplicateCount = canAdd.filter(can => !can).length;
+    console.log(`[AnkiConnect] Found ${duplicateCount} duplicates, will add ${ankiCards.length - duplicateCount} new notes`);
+
+    // 6. Add Notes
     console.log(`[AnkiConnect] Syncing ${ankiCards.length} notes...`);
-    for (const card of ankiCards) {
+    for (let i = 0; i < ankiCards.length; i++) {
+      const card = ankiCards[i];
+      const frontPreview = card.fields.Front.substring(0, 100);
+      const backPreview = card.fields.Back.substring(0, 100);
+      
+      // Skip duplicates
+      if (!canAdd[i]) {
+        results.skipped++;
+        console.log(`[AnkiConnect] ⊘ [${i + 1}/${ankiCards.length}] Skipped duplicate: "${frontPreview}..."`);
+        continue;
+      }
+      
+      // Log each card being processed
+      console.log(`[AnkiConnect] [${i + 1}/${ankiCards.length}] Adding: "${frontPreview}..."`);
+      
       try {
         const noteId = await this.addNote(
           card.deckName,
           card.fields.Front,
           card.fields.Back,
-          card.tags
+          card.tags,
+          card.guid
         );
 
         if (noteId) {
           results.success++;
+          console.log(`[AnkiConnect] ✓ [${i + 1}/${ankiCards.length}] Added note (ID: ${noteId})`);
         } else {
           results.skipped++;
+          console.warn(`[AnkiConnect] ⚠ [${i + 1}/${ankiCards.length}] Skipped (no ID returned)`);
+          results.errors.push(`Skipped (no ID): "${frontPreview}..."`);
         }
       } catch (error) {
-        if (error.message && error.message.includes('duplicate')) {
-          results.skipped++;
-        } else {
-          results.failed++;
-          results.errors.push(`Failed card: "${card.fields.Front.substring(0, 20)}..." - ${error.message}`);
-        }
+        results.failed++;
+        console.error(`[AnkiConnect] ✗ [${i + 1}/${ankiCards.length}] FAILED: ${error.message}`);
+        results.errors.push(`Failed [${i + 1}]: "${frontPreview}..." - ${error.message}`);
       }
     }
 

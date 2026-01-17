@@ -20,6 +20,8 @@ export interface ReviewSettings {
 	excludeEmptyCards: boolean;
 	deckFilter: string[];
 	enableKeyboardShortcuts: boolean;
+	audioAutoPlay: boolean;        // Auto-play audio when card is shown
+	audioStopOnFlip: boolean;      // Stop audio when card flips
 }
 
 export interface ExportSettings {
@@ -99,7 +101,8 @@ export const DEFAULT_SETTINGS: FlashlySettings = {
 			enableExclusion: true,
 			exclusionComment: '%%NO_FLASHCARD%%'
 		},
-		mixedFormats: true
+		mixedFormats: true,
+		excludedFolders: []
 	},
 	review: {
 		scheduler: 'fsrs',
@@ -110,7 +113,9 @@ export const DEFAULT_SETTINGS: FlashlySettings = {
 		includeLearningCards: true,
 		excludeEmptyCards: true,
 		deckFilter: [],
-		enableKeyboardShortcuts: true
+		enableKeyboardShortcuts: true,
+		audioAutoPlay: false,      // User must click play by default
+		audioStopOnFlip: true      // Stop audio when flipping card
 	},
 	quiz: DEFAULT_AI_QUIZ_SETTINGS,
 	export: {

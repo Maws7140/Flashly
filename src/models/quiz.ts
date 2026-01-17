@@ -3,7 +3,7 @@
  * Supports both traditional and AI-generated quizzes
  */
 
-export type QuizQuestionType = 'multiple-choice' | 'fill-blank' | 'true-false';
+export type QuizQuestionType = 'multiple-choice' | 'fill-blank' | 'true-false' | 'audio-prompt';
 
 export type QuizGenerationMethod = 'traditional' | 'ai-generated';
 
@@ -91,6 +91,20 @@ export interface AIQuizSettings {
 	temperature: number;                 // 0-1, creativity level
 	maxTokens: number;                   // Max response tokens
 	systemPrompt?: string;               // Custom system prompt
+	voiceAI?: {
+		enabled: boolean;                // Enable audio transcription
+		provider: 'openai-whisper' | 'google-speech'; // Transcription provider
+		openaiWhisper?: {
+			apiKey: string;              // OpenAI API key (can reuse from openai config)
+			model?: string;              // 'whisper-1' (default)
+			baseUrl?: string;            // Optional custom endpoint
+		};
+		googleSpeech?: {
+			apiKey: string;              // Google Speech-to-Text API key
+			language?: string;           // e.g., 'en-US', 'auto-detect'
+		};
+		cacheTranscriptions: boolean;    // Cache transcriptions to avoid re-processing
+	};
 }
 
 export interface QuizGenerationRequest {
@@ -196,5 +210,10 @@ export const DEFAULT_AI_QUIZ_SETTINGS: AIQuizSettings = {
 	},
 	temperature: 0.7,
 	maxTokens: 4000,
-	systemPrompt: 'You are a helpful assistant that generates educational quiz questions from flashcard content. Generate clear, accurate questions that test understanding of the material.'
+	systemPrompt: 'You are a helpful assistant that generates educational quiz questions from flashcard content. Generate clear, accurate questions that test understanding of the material.',
+	voiceAI: {
+		enabled: false,
+		provider: 'openai-whisper',
+		cacheTranscriptions: true
+	}
 };

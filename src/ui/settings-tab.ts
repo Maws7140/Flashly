@@ -213,6 +213,22 @@ export class FlashlySettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+		new Setting(containerEl)
+			.setName('Excluded folders')
+			.setDesc('Folders to ignore when scanning the vault for flashcards and building decks (comma-separated, relative to vault root, e.g., Templates, Archive/OldNotes)')
+			.addText(text => {
+				text
+					.setPlaceholder('Templates, Archive/OldNotes')
+					.setValue((this.plugin.settings.parser.excludedFolders ?? []).join(', '))
+					.onChange(async (value) => {
+						this.plugin.settings.parser.excludedFolders = value
+							.split(',')
+							.map(folder => folder.trim())
+							.filter(folder => folder.length > 0);
+						await this.plugin.saveSettings();
+					});
+			});
+
 		// Review Sessions
 		new Setting(containerEl)
 			.setName('Review sessions')
@@ -302,6 +318,26 @@ export class FlashlySettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.review.enableKeyboardShortcuts)
 				.onChange(async (value) => {
 					this.plugin.settings.review.enableKeyboardShortcuts = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Auto-play audio')
+			.setDesc('Automatically play audio when a card is shown (mobile browsers may block this)')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.review.audioAutoPlay)
+				.onChange(async (value) => {
+					this.plugin.settings.review.audioAutoPlay = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Stop audio on flip')
+			.setDesc('Stop playing audio when flipping a card to show the other side')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.review.audioStopOnFlip)
+				.onChange(async (value) => {
+					this.plugin.settings.review.audioStopOnFlip = value;
 					await this.plugin.saveSettings();
 				}));
 
@@ -557,7 +593,208 @@ export class FlashlySettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					});
 				});
-		}			// Advanced AI Settings
+			}
+
+			// Voice AI (Audio Transcription)
+			new Setting(containerEl)
+				.setName('Voice AI (audio transcription)')
+				.setHeading();
+
+			new Setting(containerEl)
+				.setName('Enable audio transcription')
+				.setDesc('Transcribe audio files and include their text in AI quiz generation (optional, uses external APIs)')
+				.addToggle(toggle => toggle
+					.setValue(this.plugin.settings.quiz.voiceAI?.enabled ?? false)
+					.onChange(async (value) => {
+						if (!this.plugin.settings.quiz.voiceAI) {
+							this.plugin.settings.quiz.voiceAI = {
+								enabled: value,
+								provider: 'openai-whisper',
+								cacheTranscriptions: true
+							};
+						} else {
+							this.plugin.settings.quiz.voiceAI.enabled = value;
+						}
+						await this.plugin.saveSettings();
+						void this.display();
+					}));
+
+			if (this.plugin.settings.quiz.voiceAI?.enabled) {
+				new Setting(containerEl)
+					.setName('Transcription provider')
+					.setDesc('Service used to transcribe audio files')
+					.addDropdown(dropdown => {
+						const voiceSettings = this.plugin.settings.quiz.voiceAI!;
+						dropdown
+							.addOption('openai-whisper', 'OpenAI Whisper')
+							.addOption('google-speech', 'Google Speech-to-Text')
+							.setValue(voiceSettings.provider)
+							.onChange(async (value) => {
+								this.plugin.settings.quiz.voiceAI!.provider = value as any;
+								await this.plugin.saveSettings();
+								void this.display();
+							});
+					});
+
+				// OpenAI Whisper settings
+				if (this.plugin.settings.quiz.voiceAI.provider === 'openai-whisper') {
+					new Setting(containerEl)
+						.setName('OpenAI Whisper API key')
+						.setDesc('You can reuse your OpenAI API key (used for quiz generation) or specify a separate one')
+						.addText(text => {
+							text.inputEl.type = 'password';
+							const whisperKey = this.plugin.settings.quiz.voiceAI?.openaiWhisper?.apiKey
+								|| this.plugin.settings.quiz.openai?.apiKey
+								|| '';
+							text.setPlaceholder('sk-...')
+								.setValue(whisperKey)
+								.onChange(async (value) => {
+									if (!this.plugin.settings.quiz.voiceAI) return;
+									if (!this.plugin.settings.quiz.voiceAI.openaiWhisper) {
+										this.plugin.settings.quiz.voiceAI.openaiWhisper = {
+											apiKey: value,
+											model: 'whisper-1'
+										};
+									} else {
+										this.plugin.settings.quiz.voiceAI.openaiWhisper.apiKey = value;
+									}
+									await this.plugin.saveSettings();
+								});
+						});
+
+					new Setting(containerEl)
+						.setName('Whisper model')
+						.setDesc('OpenAI Whisper model for transcription')
+						.addDropdown(dropdown => {
+							const whisper = this.plugin.settings.quiz.voiceAI?.openaiWhisper;
+							dropdown
+								.addOption('whisper-1', 'whisper-1 (recommended)')
+								.setValue(whisper?.model || 'whisper-1')
+								.onChange(async (value) => {
+									if (!this.plugin.settings.quiz.voiceAI) return;
+									if (!this.plugin.settings.quiz.voiceAI.openaiWhisper) {
+										this.plugin.settings.quiz.voiceAI.openaiWhisper = {
+											apiKey: this.plugin.settings.quiz.openai?.apiKey || '',
+											model: value
+										};
+									} else {
+										this.plugin.settings.quiz.voiceAI.openaiWhisper.model = value;
+									}
+									await this.plugin.saveSettings();
+								});
+						});
+
+					new Setting(containerEl)
+						.setName('Whisper base URL')
+						.setDesc('Override the default OpenAI URL (e.g., http://localhost:11434/v1 for a local Whisper server)')
+						.addText(text => {
+							text
+								.setPlaceholder('https://api.openai.com/v1')
+								.setValue(this.plugin.settings.quiz.voiceAI?.openaiWhisper?.baseUrl || '')
+								.onChange(async (value) => {
+									if (!this.plugin.settings.quiz.voiceAI) return;
+									if (!this.plugin.settings.quiz.voiceAI.openaiWhisper) {
+										this.plugin.settings.quiz.voiceAI.openaiWhisper = {
+											apiKey: this.plugin.settings.quiz.openai?.apiKey || '',
+											model: 'whisper-1',
+											baseUrl: value
+										};
+									} else {
+										this.plugin.settings.quiz.voiceAI.openaiWhisper.baseUrl = value;
+									}
+									await this.plugin.saveSettings();
+								});
+						});
+				}
+
+				// Google Speech-to-Text settings
+				if (this.plugin.settings.quiz.voiceAI.provider === 'google-speech') {
+					new Setting(containerEl)
+						.setName('Google Speech API key')
+						.setDesc('Google Cloud Speech-to-Text API key')
+						.addText(text => {
+							text.inputEl.type = 'password';
+							text
+								.setPlaceholder('AIza...')
+								.setValue(this.plugin.settings.quiz.voiceAI?.googleSpeech?.apiKey || '')
+								.onChange(async (value) => {
+									if (!this.plugin.settings.quiz.voiceAI) return;
+									if (!this.plugin.settings.quiz.voiceAI.googleSpeech) {
+										this.plugin.settings.quiz.voiceAI.googleSpeech = {
+											apiKey: value,
+											language: 'en-US'
+										};
+									} else {
+										this.plugin.settings.quiz.voiceAI.googleSpeech.apiKey = value;
+									}
+									await this.plugin.saveSettings();
+								});
+						});
+
+					new Setting(containerEl)
+						.setName('Language code')
+						.setDesc('Language code for transcription (e.g., en-US)')
+						.addText(text => {
+							text
+								.setPlaceholder('en-US')
+								.setValue(this.plugin.settings.quiz.voiceAI?.googleSpeech?.language || 'en-US')
+								.onChange(async (value) => {
+									if (!this.plugin.settings.quiz.voiceAI) return;
+									if (!this.plugin.settings.quiz.voiceAI.googleSpeech) {
+										this.plugin.settings.quiz.voiceAI.googleSpeech = {
+											apiKey: '',
+											language: value || 'en-US'
+										};
+									} else {
+										this.plugin.settings.quiz.voiceAI.googleSpeech.language = value || 'en-US';
+									}
+									await this.plugin.saveSettings();
+								});
+						});
+				}
+
+				new Setting(containerEl)
+					.setName('Cache transcriptions')
+					.setDesc('Save transcriptions so the same audio files are not re-processed every time')
+					.addToggle(toggle => toggle
+						.setValue(this.plugin.settings.quiz.voiceAI?.cacheTranscriptions ?? true)
+						.onChange(async (value) => {
+							if (!this.plugin.settings.quiz.voiceAI) {
+								this.plugin.settings.quiz.voiceAI = {
+									enabled: true,
+									provider: 'openai-whisper',
+									cacheTranscriptions: value
+								};
+							} else {
+								this.plugin.settings.quiz.voiceAI.cacheTranscriptions = value;
+							}
+							await this.plugin.saveSettings();
+						}));
+
+				new Setting(containerEl)
+					.setName('Clear transcription cache')
+					.setDesc('Remove all saved transcriptions (they will be re-generated as needed)')
+					.addButton(button => button
+						.setButtonText('Clear cache')
+						.onClick(async () => {
+							try {
+								const cachePath = '.obsidian/plugins/flashly/transcriptions.json';
+								const cacheFile = this.app.vault.getAbstractFileByPath(cachePath);
+								const anyVault = this.app.vault as any;
+								if (cacheFile && typeof anyVault.delete === 'function') {
+									await anyVault.delete(cacheFile);
+									new Notice('Transcription cache cleared');
+								} else {
+									new Notice('No transcription cache found');
+								}
+							} catch (error) {
+								console.error('Failed to clear transcription cache:', error);
+								new Notice('Failed to clear transcription cache');
+							}
+						}));
+			}
+
+			// Advanced AI Settings
 			new Setting(containerEl)
 				.setName('Advanced')
 				.setHeading();

@@ -65,7 +65,25 @@ export class ScanCommand {
 
     try {
       // Get all markdown files
-      const files = this.app.vault.getMarkdownFiles();
+      let files = this.app.vault.getMarkdownFiles();
+
+      // Apply excluded folder filtering from settings, if available
+      const excludedFolders = this.plugin?.settings.parser.excludedFolders ?? [];
+      if (excludedFolders.length > 0) {
+        const normalizedExcluded = excludedFolders
+          .map(folder => folder.trim())
+          .filter(folder => folder.length > 0)
+          .map(folder => folder.replace(/\\/g, '/').replace(/^\.?\//, ''));
+
+        const isExcludedPath = (path: string): boolean => {
+          const normalizedPath = path.replace(/\\/g, '/');
+          return normalizedExcluded.some(folder =>
+            normalizedPath === folder || normalizedPath.startsWith(folder + '/')
+          );
+        };
+
+        files = files.filter(file => !isExcludedPath(file.path));
+      }
       
       // Track existing cards to detect deletions
       const existingCardIds = new Set(

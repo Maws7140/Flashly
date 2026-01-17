@@ -30,3 +30,20 @@ SUBMISSION_GUIDE.md
 
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store
+
+# Test coverage
+coverage/
+
+# Developer scripts
+fix-*.mjs
+run-obsidian-eslint.mjs
+version-bump.mjs
+
+# Test scripts
+test-*.ps1
+whisper_server.py
+
+# Developer tools and configs
+.claude/
+eslint-out.json
+settings-errors.txt

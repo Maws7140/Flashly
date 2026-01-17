@@ -5,6 +5,7 @@ import type FlashlyPlugin from '../../main';
 import { ParentDeckReviewModal } from './parent-deck-review-modal';
 import { getAllDescendants } from '../utils/deck-naming';
 import { DeckSortOption } from '../settings';
+import { convertAudioWikilinks, postProcessAudioElements } from '../utils/audio-utils';
 
 export const FLASHCARD_BROWSER_VIEW_TYPE = 'flashcard-browser-view';
 
@@ -26,6 +27,7 @@ export class FlashcardBrowserView extends ItemView {
   private isRendering = false;
   private needsRerender = false;
   private activeLeafRefreshTimeout: number | null = null;
+  private currentAudioElements: HTMLAudioElement[] = [];
 
   constructor(leaf: WorkspaceLeaf, plugin: FlashlyPlugin) {
     super(leaf);
@@ -96,6 +98,8 @@ export class FlashcardBrowserView extends ItemView {
 
 
   async onClose(): Promise<void> {
+    // Stop all audio
+    this.stopAllAudio();
     // Clean up animation timeout
     if (this.animationTimeoutId !== null) {
       window.clearTimeout(this.animationTimeoutId);
@@ -686,22 +690,49 @@ export class FlashcardBrowserView extends ItemView {
       cardInner.addClass('flipped');
     }
 
+    // Stop previous audio when card changes
+    this.stopAllAudio();
+
+    // Pre-process markdown to convert audio wikilinks to HTML audio tags
+    const frontMarkdown = convertAudioWikilinks(card.front, card.source.file, this.app);
+    const backMarkdown = convertAudioWikilinks(card.back, card.source.file, this.app);
+
     // Front of card (question)
     const cardFront = cardInner.createDiv({ cls: 'card-face card-front' });
     const frontText = cardFront.createDiv({ cls: 'card-text' });
     await MarkdownRenderer.render(
       this.app,
-      card.front,
+      frontMarkdown,
       frontText,
       card.source.file,
       this.component
     );
+    // Post-process to fix audio element paths
+    postProcessAudioElements(frontText, this.app, card.source.file);
+    // Track audio elements
+    this.trackAudioElements(frontText);
+    // Auto-play if enabled and showing front
+    if (this.plugin.settings.review.audioAutoPlay && !state.showingAnswer) {
+      this.autoPlayAudio(frontText);
+    }
     const frontBtn = cardFront.createEl('button', {
       cls: 'flip-btn',
       text: 'Show answer',
     });
     frontBtn.addEventListener('click', () => {
+      if (this.plugin.settings.review.audioStopOnFlip) {
+        this.stopAllAudio();
+      }
       this.flipWithAnimation();
+      // Auto-play back audio after flip if enabled
+      if (this.plugin.settings.review.audioAutoPlay) {
+        setTimeout(() => {
+          const newState = this.viewModel.getViewState();
+          if (newState.showingAnswer) {
+            this.autoPlayAudio(backText);
+          }
+        }, 450); // After animation completes
+      }
     });
 
     // Back of card (answer)
@@ -709,17 +740,37 @@ export class FlashcardBrowserView extends ItemView {
     const backText = cardBack.createDiv({ cls: 'card-text' });
     await MarkdownRenderer.render(
       this.app,
-      card.back,
+      backMarkdown,
       backText,
       card.source.file,
       this.component
     );
+    // Post-process to fix audio element paths
+    postProcessAudioElements(backText, this.app, card.source.file);
+    // Track audio elements
+    this.trackAudioElements(backText);
+    // Auto-play if enabled and showing back
+    if (this.plugin.settings.review.audioAutoPlay && state.showingAnswer) {
+      this.autoPlayAudio(backText);
+    }
     const backBtn = cardBack.createEl('button', {
       cls: 'flip-btn',
       text: 'Show question',
     });
     backBtn.addEventListener('click', () => {
+      if (this.plugin.settings.review.audioStopOnFlip) {
+        this.stopAllAudio();
+      }
       this.flipWithAnimation();
+      // Auto-play front audio after flip if enabled
+      if (this.plugin.settings.review.audioAutoPlay) {
+        setTimeout(() => {
+          const newState = this.viewModel.getViewState();
+          if (!newState.showingAnswer) {
+            this.autoPlayAudio(frontText);
+          }
+        }, 450); // After animation completes
+      }
     });
   }
 
@@ -921,6 +972,36 @@ export class FlashcardBrowserView extends ItemView {
       this.isAnimating = false;
       this.animationTimeoutId = null;
     }, 400); // Match CSS transition duration
+  }
+
+  private stopAllAudio(): void {
+    this.currentAudioElements.forEach(audio => {
+      if (!audio.paused) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    });
+    this.currentAudioElements = [];
+  }
+
+  private trackAudioElements(container: HTMLElement): void {
+    const audioElements = container.querySelectorAll('audio');
+    audioElements.forEach(audio => {
+      if (!this.currentAudioElements.includes(audio as HTMLAudioElement)) {
+        this.currentAudioElements.push(audio as HTMLAudioElement);
+      }
+    });
+  }
+
+  private autoPlayAudio(container: HTMLElement): void {
+    const audioElements = container.querySelectorAll('audio');
+    audioElements.forEach(audio => {
+      const audioEl = audio as HTMLAudioElement;
+      // Try to play, but handle errors (e.g., mobile autoplay restrictions)
+      void audioEl.play().catch(() => {
+        // Auto-play was prevented, which is fine - user can click play
+      });
+    });
   }
 
   /**

@@ -6,6 +6,7 @@
 import { ItemView, WorkspaceLeaf, setIcon, MarkdownRenderer, Component, Notice, App } from 'obsidian';
 import type FlashlyPlugin from '../../main';
 import { Quiz, QuizQuestion, checkAnswer, calculateQuizScore } from '../models/quiz';
+import { convertAudioWikilinks, postProcessAudioElements } from '../utils/audio-utils';
 
 export const QUIZ_VIEW_TYPE = 'flashly-quiz-view';
 
@@ -259,7 +260,12 @@ export class QuizView extends ItemView {
 		const promptContainer = questionContainer.createDiv({ cls: 'quiz-question-prompt' });
 		const promptContent = promptContainer.createDiv({ cls: 'quiz-prompt-content' });
 		if (this.component) {
-			await MarkdownRenderer.render(this.app, question.prompt, promptContent, '', this.component);
+			// Pre-process audio wikilinks in prompt
+			const sourcePath = question.sourceCardId ? this.getSourceCardPath(question.sourceCardId) : '';
+			const promptMarkdown = convertAudioWikilinks(question.prompt, sourcePath, this.app);
+			await MarkdownRenderer.render(this.app, promptMarkdown, promptContent, sourcePath, this.component);
+			// Post-process to fix audio element paths
+			postProcessAudioElements(promptContent, this.app, sourcePath);
 		}
 
 		// Answer area
@@ -271,6 +277,8 @@ export class QuizView extends ItemView {
 			this.renderFillBlank(answerArea, question);
 		} else if (question.type === 'true-false' && question.options) {
 			await this.renderTrueFalse(answerArea, question);
+		} else if (question.type === 'audio-prompt') {
+			this.renderAudioPrompt(answerArea, question);
 		}
 
 		// Check if answer area needs scroll indicator
@@ -379,7 +387,12 @@ export class QuizView extends ItemView {
 
 			// Render markdown in options
 			if (this.component) {
-				await MarkdownRenderer.render(this.app, option, optionContent, '', this.component);
+				// Pre-process audio wikilinks in option
+				const sourcePath = question.sourceCardId ? this.getSourceCardPath(question.sourceCardId) : '';
+				const optionMarkdown = convertAudioWikilinks(option, sourcePath, this.app);
+				await MarkdownRenderer.render(this.app, optionMarkdown, optionContent, sourcePath, this.component);
+				// Post-process to fix audio element paths
+				postProcessAudioElements(optionContent, this.app, sourcePath);
 			}
 
 			if (question.userAnswer === index) {
@@ -428,6 +441,43 @@ export class QuizView extends ItemView {
 		setTimeout(() => input.focus(), 100);
 	}
 
+	/**
+	 * Render audio-prompt question (user listens to audio, types answer)
+	 */
+	private renderAudioPrompt(container: HTMLElement, question: QuizQuestion): void {
+		// Audio is already rendered in the prompt, so we just need an input field
+		const input = container.createEl('input', {
+			type: 'text',
+			cls: 'quiz-input',
+			placeholder: 'Type your answer after listening...'
+		});
+
+		if (question.userAnswer !== undefined) {
+			input.value = String(question.userAnswer);
+		}
+
+		// Debounce input to avoid excessive state updates
+		input.addEventListener('input', (e) => {
+			const value = (e.target as HTMLInputElement).value;
+
+			// Clear existing timer
+			if (this.debounceTimer !== null) {
+				window.clearTimeout(this.debounceTimer);
+			}
+
+			// Update immediately in question object but don't re-render
+			question.userAnswer = value;
+
+			// Debounced save (save after 500ms of no typing)
+			this.debounceTimer = window.setTimeout(() => {
+				void this.saveQuizProgress();
+			}, 500);
+		});
+
+		// Auto-focus
+		setTimeout(() => input.focus(), 100);
+	}
+
 	private async renderTrueFalse(container: HTMLElement, question: QuizQuestion): Promise<void> {
 		if (!question.options) return;
 
@@ -440,7 +490,12 @@ export class QuizView extends ItemView {
 
 			// Render markdown in options
 			if (this.component) {
-				await MarkdownRenderer.render(this.app, option, optionContent, '', this.component);
+				// Pre-process audio wikilinks in option
+				const sourcePath = question.sourceCardId ? this.getSourceCardPath(question.sourceCardId) : '';
+				const optionMarkdown = convertAudioWikilinks(option, sourcePath, this.app);
+				await MarkdownRenderer.render(this.app, optionMarkdown, optionContent, sourcePath, this.component);
+				// Post-process to fix audio element paths
+				postProcessAudioElements(optionContent, this.app, sourcePath);
 			}
 
 			const answerValue = option.toLowerCase();
@@ -580,8 +635,11 @@ export class QuizView extends ItemView {
 			userAnswerDiv.createEl('strong', { text: 'Your answer: ' });
 			const userAnswerContent = userAnswerDiv.createDiv({ cls: 'quiz-answer-content' });
 			if (this.component) {
+				const sourcePath = question.sourceCardId ? this.getSourceCardPath(question.sourceCardId) : '';
 				const userAnswerText = this.formatAnswer(question, question.userAnswer!);
-				await MarkdownRenderer.render(this.app, userAnswerText, userAnswerContent, '', this.component);
+				const userAnswerMarkdown = convertAudioWikilinks(userAnswerText, sourcePath, this.app);
+				await MarkdownRenderer.render(this.app, userAnswerMarkdown, userAnswerContent, sourcePath, this.component);
+				postProcessAudioElements(userAnswerContent, this.app, sourcePath);
 			}
 
 			// Show correct answer
@@ -589,8 +647,11 @@ export class QuizView extends ItemView {
 			correctAnswerDiv.createEl('strong', { text: 'Correct answer: ' });
 			const correctAnswerContent = correctAnswerDiv.createDiv({ cls: 'quiz-answer-content' });
 			if (this.component) {
+				const sourcePath = question.sourceCardId ? this.getSourceCardPath(question.sourceCardId) : '';
 				const correctAnswerText = this.formatAnswer(question, question.correctAnswer);
-				await MarkdownRenderer.render(this.app, correctAnswerText, correctAnswerContent, '', this.component);
+				const correctAnswerMarkdown = convertAudioWikilinks(correctAnswerText, sourcePath, this.app);
+				await MarkdownRenderer.render(this.app, correctAnswerMarkdown, correctAnswerContent, sourcePath, this.component);
+				postProcessAudioElements(correctAnswerContent, this.app, sourcePath);
 			}
 
 			// Show explanation if available
@@ -599,7 +660,10 @@ export class QuizView extends ItemView {
 				explanationDiv.createEl('strong', { text: 'Explanation:' });
 				const explanationContent = explanationDiv.createDiv({ cls: 'quiz-explanation-content' });
 				if (this.component) {
-					await MarkdownRenderer.render(this.app, question.explanation, explanationContent, '', this.component);
+					const sourcePath = question.sourceCardId ? this.getSourceCardPath(question.sourceCardId) : '';
+					const explanationMarkdown = convertAudioWikilinks(question.explanation, sourcePath, this.app);
+					await MarkdownRenderer.render(this.app, explanationMarkdown, explanationContent, sourcePath, this.component);
+					postProcessAudioElements(explanationContent, this.app, sourcePath);
 				}
 			}
 
@@ -766,6 +830,8 @@ export class QuizView extends ItemView {
 				return 'Fill in the blank';
 			case 'true-false':
 				return 'True/False';
+			case 'audio-prompt':
+				return 'Audio question';
 			default:
 				return type;
 		}
@@ -857,5 +923,14 @@ export class QuizView extends ItemView {
 				return;
 			}
 		}
+	}
+
+	/**
+	 * Get source card file path from card ID
+	 * Used for resolving audio file paths in quiz questions
+	 */
+	private getSourceCardPath(cardId: string): string {
+		const card = this.plugin.storage.getCard(cardId);
+		return card ? card.source.file : '';
 	}
 }

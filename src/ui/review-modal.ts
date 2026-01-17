@@ -2,9 +2,12 @@ import { App, Modal, Notice, MarkdownRenderer, Component } from 'obsidian';
 import { Rating } from 'ts-fsrs';
 import { SupportedRating } from '../scheduler/scheduler-types';
 import { ReviewSessionViewModel, SessionSummary } from '../viewmodels/review-session-viewmodel';
+import { convertAudioWikilinks, postProcessAudioElements } from '../utils/audio-utils';
 
 interface ReviewModalOptions {
 	enableKeyboardShortcuts: boolean;
+	audioAutoPlay: boolean;
+	audioStopOnFlip: boolean;
 	onComplete?: (summary: SessionSummary) => void;
 }
 
@@ -21,6 +24,7 @@ export class ReviewModal extends Modal {
 	private component: Component | null = null;
 	private isAnimating = false;
 	private currentCardId: string | null = null;
+	private currentAudioElements: HTMLAudioElement[] = [];
 
 	constructor(
 		app: App,
@@ -50,6 +54,7 @@ export class ReviewModal extends Modal {
 	}
 
 	onClose(): void {
+		this.stopAllAudio();
 		if (this.component) {
 			this.component.unload();
 			this.component = null;
@@ -153,27 +158,54 @@ export class ReviewModal extends Modal {
 		this.component = new Component();
 		this.component.load();
 
+		// Stop previous audio when card changes
+		if (isNewCard) {
+			this.stopAllAudio();
+		}
+
 		// Clear previous content
 		this.frontEl.empty();
 		this.backEl.empty();
 
-		// Render markdown with full support for code blocks, images, etc.
+		// Pre-process markdown to convert audio wikilinks to HTML audio tags
+		const frontMarkdown = convertAudioWikilinks(current.card.front, current.card.source.file, this.app);
+		const backMarkdown = convertAudioWikilinks(current.card.back, current.card.source.file, this.app);
+
+		// Render markdown with full support for code blocks, images, audio, etc.
 		if (this.component) {
 			void MarkdownRenderer.render(
 				this.app,
-				current.card.front,
+				frontMarkdown,
 				this.frontEl,
 				current.card.source.file,
 				this.component
-			);
+			).then(() => {
+				// Post-process to fix audio element paths
+				postProcessAudioElements(this.frontEl, this.app, current.card.source.file);
+				// Find and track audio elements
+				this.trackAudioElements(this.frontEl);
+				// Auto-play audio if enabled and showing front
+				if (this.options.audioAutoPlay && !showingAnswer) {
+					this.autoPlayAudio(this.frontEl);
+				}
+			});
 
 			void MarkdownRenderer.render(
 				this.app,
-				current.card.back,
+				backMarkdown,
 				this.backEl,
 				current.card.source.file,
 				this.component
-			);
+			).then(() => {
+				// Post-process to fix audio element paths
+				postProcessAudioElements(this.backEl, this.app, current.card.source.file);
+				// Find and track audio elements
+				this.trackAudioElements(this.backEl);
+				// Auto-play audio if enabled and showing back
+				if (this.options.audioAutoPlay && showingAnswer) {
+					this.autoPlayAudio(this.backEl);
+				}
+			});
 		}
 	}
 
@@ -283,18 +315,65 @@ export class ReviewModal extends Modal {
 
 		this.isAnimating = true;
 
+		// Stop audio when flipping if enabled
+		if (this.options.audioStopOnFlip) {
+			this.stopAllAudio();
+		}
+
 		// Add will-change for GPU acceleration
 		this.cardInner.addClass('animating');
 
 		// Toggle the answer state
 		this.viewModel.toggleAnswer();
+		const showingAnswer = this.viewModel.getProgress().showingAnswer;
 		this.renderCard();
+
+		// Auto-play audio on the side being shown if enabled
+		if (this.options.audioAutoPlay) {
+			setTimeout(() => {
+				if (showingAnswer) {
+					this.autoPlayAudio(this.backEl);
+				} else {
+					this.autoPlayAudio(this.frontEl);
+				}
+			}, 100); // Small delay to ensure DOM is ready
+		}
 
 		// Remove will-change after animation completes to free GPU memory
 		setTimeout(() => {
 			this.cardInner.removeClass('animating');
 			this.isAnimating = false;
 		}, 400); // Match CSS transition duration
+	}
+
+	private stopAllAudio(): void {
+		this.currentAudioElements.forEach(audio => {
+			if (!audio.paused) {
+				audio.pause();
+				audio.currentTime = 0;
+			}
+		});
+		this.currentAudioElements = [];
+	}
+
+	private trackAudioElements(container: HTMLElement): void {
+		const audioElements = container.querySelectorAll('audio');
+		audioElements.forEach(audio => {
+			if (!this.currentAudioElements.includes(audio as HTMLAudioElement)) {
+				this.currentAudioElements.push(audio as HTMLAudioElement);
+			}
+		});
+	}
+
+	private autoPlayAudio(container: HTMLElement): void {
+		const audioElements = container.querySelectorAll('audio');
+		audioElements.forEach(audio => {
+			const audioEl = audio as HTMLAudioElement;
+			// Try to play, but handle errors (e.g., mobile autoplay restrictions)
+			void audioEl.play().catch(() => {
+				// Auto-play was prevented, which is fine - user can click play
+			});
+		});
 	}
 
 	private formatInterval(intervalDays: number): string {
