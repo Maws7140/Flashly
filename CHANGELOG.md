@@ -1,5 +1,23 @@
 # Flashly Plugin - Changelog
 
+## [1.1.0] - 2025-01-XX
+
+### Added
+- **Card Selection for AI Quiz Generation**: When AI quiz generation is enabled, users can now select specific cards to include in the AI context
+  - Card selection dropdown appears when AI toggle is enabled
+  - Searchable list of cards with card front text and deck badges
+  - Select all / Deselect all buttons for quick selection
+  - Card selection respects deck filter (shows intersection)
+  - Selection persists while modal is open
+  - Card selection automatically updates when deck filter changes
+
+### Changes
+- Updated quiz generation to use selected cards when AI is enabled
+- Improved card filtering logic to prioritize card selection over deck filter when both are set
+- Enhanced validation to ensure at least one card is selected for AI quiz generation
+
+---
+
 ## [1.0.3] - 2025-01-XX
 
 ### Changes

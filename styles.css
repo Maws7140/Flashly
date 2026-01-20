@@ -3660,6 +3660,159 @@
   font-style: italic;
 }
 
+/* Card Selection for AI Quiz Generation */
+.quiz-card-selection {
+  margin-top: 12px;
+  margin-bottom: 16px;
+}
+
+.quiz-card-selection h4 {
+  margin: 0 0 8px 0;
+  font-size: 1em;
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+.quiz-card-selection-desc {
+  margin: 0 0 12px 0;
+  font-size: 0.9em;
+  color: var(--text-muted);
+}
+
+.quiz-card-search-container {
+  margin-bottom: 12px;
+}
+
+.quiz-card-search-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 0.95em;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  transition: border-color 0.2s;
+}
+
+.quiz-card-search-input:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+}
+
+.quiz-card-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.quiz-card-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.quiz-card-control-btn {
+  padding: 6px 12px;
+  font-size: 0.9em;
+  background: var(--interactive-normal);
+  color: var(--text-normal);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.quiz-card-control-btn:hover {
+  background: var(--interactive-hover);
+}
+
+.quiz-card-list {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 8px;
+  background: var(--background-secondary);
+}
+
+.quiz-card-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.quiz-card-list::-webkit-scrollbar-track {
+  background: var(--background-secondary);
+  border-radius: 4px;
+}
+
+.quiz-card-list::-webkit-scrollbar-thumb {
+  background: var(--background-modifier-border);
+  border-radius: 4px;
+}
+
+.quiz-card-list::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+.quiz-card-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 10px;
+  border-radius: 4px;
+  transition: background 0.2s;
+  cursor: pointer;
+  gap: 10px;
+}
+
+.quiz-card-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+.quiz-card-item input[type="checkbox"] {
+  margin-top: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.quiz-card-label-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.quiz-card-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.quiz-card-text {
+  flex: 1;
+  font-weight: 500;
+  color: var(--text-normal);
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.quiz-card-deck {
+  display: inline-block;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 0.85em;
+  font-weight: 500;
+  align-self: flex-start;
+}
+
+.quiz-card-no-results {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 /* Export modal deck selection */
 .export-deck-selection {
   margin-top: 12px;

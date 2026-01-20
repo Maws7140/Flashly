@@ -59,6 +59,7 @@ export interface QuizConfig {
 	useAI: boolean;                      // Use AI generation
 	aiProvider?: AIProvider;             // AI provider if using AI
 	learnMode?: boolean;                 // Enable learn mode (immediate feedback & retry)
+	selectedCardIds?: string[];         // Selected card IDs for AI quiz generation
 }
 
 export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'custom';

@@ -8,6 +8,7 @@ import type FlashlyPlugin from '../../main';
 import { QuizConfig, DEFAULT_QUIZ_CONFIG, createQuiz, Quiz } from '../models/quiz';
 import { TraditionalQuizGenerator } from '../quiz/traditional-quiz-generator';
 import { AIQuizGenerator } from '../quiz/ai-quiz-generator';
+import { FlashlyCard } from '../models/card';
 
 interface QuizView {
 	loadQuiz(quiz: Quiz): void;
@@ -16,6 +17,7 @@ interface QuizView {
 class GenerateQuizModal extends Modal {
 	plugin: FlashlyPlugin;
 	config: QuizConfig;
+	private cardSelectionContainer: HTMLElement | null = null;
 
 	constructor(app: App, plugin: FlashlyPlugin) {
 		super(app);
@@ -177,6 +179,10 @@ class GenerateQuizModal extends Modal {
 						selectedDecks.delete(deck);
 					}
 					this.config.deckFilter = Array.from(selectedDecks);
+					// Update card selection if AI is enabled
+					if (this.config.useAI && this.cardSelectionContainer) {
+						this.renderCardSelection();
+					}
 				});
 
 				// Store reference for filtering
@@ -219,6 +225,10 @@ class GenerateQuizModal extends Modal {
 					}
 				});
 				this.config.deckFilter = Array.from(selectedDecks);
+				// Update card selection if AI is enabled
+				if (this.config.useAI && this.cardSelectionContainer) {
+					this.renderCardSelection();
+				}
 			});
 
 			// Update Deselect all button to only affect visible decks
@@ -231,6 +241,10 @@ class GenerateQuizModal extends Modal {
 					}
 				});
 				this.config.deckFilter = Array.from(selectedDecks);
+				// Update card selection if AI is enabled
+				if (this.config.useAI && this.cardSelectionContainer) {
+					this.renderCardSelection();
+				}
 			});
 		}
 
@@ -245,6 +259,17 @@ class GenerateQuizModal extends Modal {
 					toggle.setValue(this.config.useAI);
 					toggle.onChange(value => {
 						this.config.useAI = value;
+						if (value) {
+							// Show card selection when AI is enabled
+							this.renderCardSelection();
+						} else {
+							// Hide card selection and clear selection when AI is disabled
+							if (this.cardSelectionContainer) {
+								this.cardSelectionContainer.remove();
+								this.cardSelectionContainer = null;
+							}
+							this.config.selectedCardIds = undefined;
+						}
 					});
 				});
 
@@ -270,6 +295,11 @@ class GenerateQuizModal extends Modal {
 					cls: 'quiz-warning'
 				});
 			}
+
+			// Show card selection if AI is enabled
+			if (this.config.useAI) {
+				this.renderCardSelection();
+			}
 		}
 
 		// Buttons
@@ -293,6 +323,198 @@ class GenerateQuizModal extends Modal {
 		});
 	}
 
+	private renderCardSelection(): void {
+		const { contentEl } = this;
+
+		// Remove existing card selection if present
+		if (this.cardSelectionContainer) {
+			this.cardSelectionContainer.remove();
+		}
+
+		// Get available cards
+		let availableCards = this.plugin.storage.getAllCards();
+
+		// Apply deck filter if specified
+		if (this.config.deckFilter && this.config.deckFilter.length > 0) {
+			availableCards = availableCards.filter(card =>
+				this.config.deckFilter!.some(deck =>
+					card.deck.toLowerCase().includes(deck.toLowerCase())
+				)
+			);
+		}
+
+		if (availableCards.length === 0) {
+			const warning = contentEl.createDiv({
+				text: 'No cards available. Please scan for flashcards first.',
+				cls: 'quiz-warning'
+			});
+			this.cardSelectionContainer = warning;
+			return;
+		}
+
+		// Create card selection container
+		const cardContainer = contentEl.createDiv({ cls: 'quiz-card-selection' });
+		this.cardSelectionContainer = cardContainer;
+
+		cardContainer.createEl('h4', { text: 'Select cards for AI context' });
+		cardContainer.createEl('p', {
+			text: 'Choose which cards to include in the AI context for quiz generation',
+			cls: 'quiz-card-selection-desc'
+		});
+
+		// Initialize or update selected cards
+		// If selectedCardIds exists, filter to only include available cards
+		// Otherwise, select all available cards
+		if (!this.config.selectedCardIds || this.config.selectedCardIds.length === 0) {
+			this.config.selectedCardIds = availableCards.map(c => c.id);
+		} else {
+			// Filter selectedCardIds to only include cards that are still available
+			const availableCardIds = new Set(availableCards.map(c => c.id));
+			this.config.selectedCardIds = this.config.selectedCardIds.filter(id => availableCardIds.has(id));
+			// If no cards remain selected, select all available cards
+			if (this.config.selectedCardIds.length === 0) {
+				this.config.selectedCardIds = availableCards.map(c => c.id);
+			}
+		}
+
+		const selectedCardIds = new Set<string>(this.config.selectedCardIds || []);
+
+		// Add search input
+		const searchContainer = cardContainer.createDiv({ cls: 'quiz-card-search-container' });
+		const searchInput = searchContainer.createEl('input', {
+			type: 'text',
+			placeholder: 'Search cards...',
+			cls: 'quiz-card-search-input'
+		});
+
+		// Add "Select all" / "Deselect all" buttons
+		const controlsDiv = cardContainer.createDiv({ cls: 'quiz-card-controls' });
+
+		const selectAllBtn = controlsDiv.createEl('button', {
+			text: 'Select all',
+			cls: 'quiz-card-control-btn'
+		});
+
+		const deselectAllBtn = controlsDiv.createEl('button', {
+			text: 'Deselect all',
+			cls: 'quiz-card-control-btn'
+		});
+
+		// Create scrollable card list
+		const cardList = cardContainer.createDiv({ cls: 'quiz-card-list' });
+
+		// Helper function to truncate text
+		const truncateText = (text: string, maxLength: number): string => {
+			if (text.length <= maxLength) return text;
+			return text.substring(0, maxLength).trim() + '...';
+		};
+
+		// Helper function to strip markdown for display
+		const stripMarkdown = (text: string): string => {
+			return text
+				.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // Remove markdown links
+				.replace(/\*\*([^\*]+)\*\*/g, '$1') // Remove bold
+				.replace(/\*([^\*]+)\*/g, '$1') // Remove italic
+				.replace(/#{1,6}\s+/g, '') // Remove headers
+				.replace(/`([^`]+)`/g, '$1') // Remove inline code
+				.trim();
+		};
+
+		// Store card items for filtering
+		const cardItems: Array<{ element: HTMLElement, card: FlashlyCard, checkbox: HTMLInputElement }> = [];
+
+		availableCards.forEach(card => {
+			const cardItem = cardList.createDiv({ cls: 'quiz-card-item' });
+
+			const checkbox = cardItem.createEl('input', {
+				type: 'checkbox'
+			});
+			checkbox.id = `card-${card.id}`;
+			checkbox.checked = selectedCardIds.has(card.id);
+
+			const labelContainer = cardItem.createDiv({ cls: 'quiz-card-label-container' });
+			const label = labelContainer.createEl('label', {
+				attr: { for: `card-${card.id}` }
+			});
+			label.addClass('quiz-card-label');
+
+			// Display card front text (truncated and markdown-stripped)
+			const frontText = stripMarkdown(card.front);
+			const displayText = truncateText(frontText, 100);
+			label.createSpan({ text: displayText, cls: 'quiz-card-text' });
+
+			// Add deck badge
+			const deckBadge = labelContainer.createSpan({
+				text: card.deck,
+				cls: 'quiz-card-deck'
+			});
+
+			checkbox.addEventListener('change', () => {
+				if (checkbox.checked) {
+					selectedCardIds.add(card.id);
+				} else {
+					selectedCardIds.delete(card.id);
+				}
+				this.config.selectedCardIds = Array.from(selectedCardIds);
+			});
+
+			// Store reference for filtering
+			cardItems.push({ element: cardItem, card, checkbox });
+		});
+
+		// Search functionality
+		searchInput.addEventListener('input', () => {
+			const searchTerm = searchInput.value.toLowerCase();
+
+			cardItems.forEach(item => {
+				const frontText = stripMarkdown(item.card.front).toLowerCase();
+				const deckName = item.card.deck.toLowerCase();
+				const matches = frontText.includes(searchTerm) || deckName.includes(searchTerm);
+				item.element.toggleClass('hidden', !matches);
+			});
+
+			// Update no results message
+			const visibleItems = cardItems.filter(item => !item.element.hasClass('hidden'));
+			let noResultsMsg = cardList.querySelector('.quiz-card-no-results') as HTMLElement;
+
+			if (visibleItems.length === 0) {
+				if (!noResultsMsg) {
+					noResultsMsg = cardList.createDiv({
+						text: 'No cards found',
+						cls: 'quiz-card-no-results'
+					});
+				}
+				noResultsMsg.removeClass('hidden');
+			} else if (noResultsMsg) {
+				noResultsMsg.addClass('hidden');
+			}
+		});
+
+		// Select all button - only affects visible cards
+		selectAllBtn.addEventListener('click', (e) => {
+			e.preventDefault();
+			cardItems.forEach(item => {
+				if (!item.element.hasClass('hidden')) {
+					selectedCardIds.add(item.card.id);
+					item.checkbox.checked = true;
+				}
+			});
+			this.config.selectedCardIds = Array.from(selectedCardIds);
+		});
+
+		// Deselect all button - only affects visible cards
+		deselectAllBtn.addEventListener('click', (e) => {
+			e.preventDefault();
+			cardItems.forEach(item => {
+				if (!item.element.hasClass('hidden')) {
+					selectedCardIds.delete(item.card.id);
+					item.checkbox.checked = false;
+				}
+			});
+			this.config.selectedCardIds = Array.from(selectedCardIds);
+		});
+	}
+
 	async generateQuiz() {
 		// Show loading notice (declare outside try so it's accessible in catch)
 		let loadingNotice: Notice | null = null;
@@ -311,13 +533,37 @@ class GenerateQuizModal extends Modal {
 			// Get cards
 			let cards = this.plugin.storage.getAllCards();
 
-			// Apply deck filter if specified
-			if (this.config.deckFilter && this.config.deckFilter.length > 0) {
-				cards = cards.filter(card =>
-					this.config.deckFilter!.some(deck =>
-						card.deck.toLowerCase().includes(deck.toLowerCase())
-					)
-				);
+			// Apply card selection filter if AI is enabled and cards are selected
+			if (this.config.useAI && this.config.selectedCardIds && this.config.selectedCardIds.length > 0) {
+				cards = cards.filter(card => this.config.selectedCardIds!.includes(card.id));
+				
+				// Also apply deck filter if specified (intersection)
+				if (this.config.deckFilter && this.config.deckFilter.length > 0) {
+					cards = cards.filter(card =>
+						this.config.deckFilter!.some(deck =>
+							card.deck.toLowerCase().includes(deck.toLowerCase())
+						)
+					);
+				}
+
+				// Validate that we have cards after filtering
+				if (cards.length === 0) {
+					new Notice('No cards match your selection. Please select at least one card for AI quiz generation.');
+					return;
+				}
+			} else if (this.config.useAI && this.config.selectedCardIds && this.config.selectedCardIds.length === 0) {
+				// AI is enabled but no cards selected
+				new Notice('Please select at least one card for AI quiz generation.');
+				return;
+			} else {
+				// Apply deck filter if specified (for traditional quizzes or when no card selection)
+				if (this.config.deckFilter && this.config.deckFilter.length > 0) {
+					cards = cards.filter(card =>
+						this.config.deckFilter!.some(deck =>
+							card.deck.toLowerCase().includes(deck.toLowerCase())
+						)
+					);
+				}
 			}
 
 			if (cards.length === 0) {
