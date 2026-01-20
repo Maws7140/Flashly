@@ -45,5 +45,6 @@ whisper_server.py
 
 # Developer tools and configs
 .claude/
+.claude
 eslint-out.json
 settings-errors.txt
