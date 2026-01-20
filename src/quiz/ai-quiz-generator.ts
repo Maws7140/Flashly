@@ -570,8 +570,18 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 		cleaned = cleaned.replace(/\x08(eta|egin|f|ar|inom)/g, "\\\\b$1");
 
 		// Replace backslashes not followed by valid JSON escape chars (" \ / b f n r t u)
-		// This protects things like \phi, \sigma, \left which are valid in LaTeX but not JSON escapes
-		cleaned = cleaned.replace(/\\(?![/bfnrtu"\\\\])/g, "\\\\");
+		// We use a callback to be explicit and safe
+		cleaned = cleaned.replace(/\\(.)/g, (match, char) => {
+			if (/^["\\/bfnrtu]$/.test(char)) {
+				return match; // Valid escape
+			}
+			return '\\\\' + char; // Invalid escape, escape the backslash
+		});
+
+		// Handle backslash at the very end of the string (not matched by above because no following char)
+		if (cleaned.endsWith('\\')) {
+			cleaned = cleaned.slice(0, -1) + '\\\\';
+		}
 
 		return cleaned;
 	}
@@ -657,10 +667,20 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 			} catch (parseError) {
 				console.error('JSON parse error:', parseError);
 				console.error('Failed content length:', cleanedContent.length);
+
+				// Log context around error position if available
+				const errorMsg = parseError instanceof Error ? parseError.message : String(parseError);
+				const positionMatch = errorMsg.match(/at position (\d+)/);
+				if (positionMatch) {
+					const pos = parseInt(positionMatch[1], 10);
+					const start = Math.max(0, pos - 100);
+					const end = Math.min(cleanedContent.length, pos + 100);
+					console.error(`Error context (around pos ${pos}):`, cleanedContent.substring(start, end));
+				}
+
 				console.error('Failed content (first 500 chars):', cleanedContent.substring(0, 500));
 				
 				// Provide more helpful error message
-				const errorMsg = parseError instanceof Error ? parseError.message : 'Unknown parse error';
 				throw new Error(`Invalid JSON response from OpenAI (${errorMsg}). The response was likely truncated. Try generating fewer questions or increase max tokens.`);
 			}
 
@@ -746,9 +766,18 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 			} catch (parseError) {
 				console.error('JSON parse error:', parseError);
 				console.error('Failed content length:', cleanedContent.length);
+
+				// Log context around error position if available
+				const errorMsg = parseError instanceof Error ? parseError.message : String(parseError);
+				const positionMatch = errorMsg.match(/at position (\d+)/);
+				if (positionMatch) {
+					const pos = parseInt(positionMatch[1], 10);
+					const start = Math.max(0, pos - 100);
+					const end = Math.min(cleanedContent.length, pos + 100);
+					console.error(`Error context (around pos ${pos}):`, cleanedContent.substring(start, end));
+				}
 				
 				// Provide more helpful error message
-				const errorMsg = parseError instanceof Error ? parseError.message : 'Unknown parse error';
 				throw new Error(`Invalid JSON response from Anthropic (${errorMsg}). The response was likely truncated. Try generating fewer questions or increase max tokens.`);
 			}
 
@@ -945,11 +974,22 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 		} catch (parseError) {
 			console.error('JSON parse error:', parseError);
 			console.error('Failed content length:', cleanedContent.length);
+			
+			// Log context around error position if available
+			const errorMsg = parseError instanceof Error ? parseError.message : String(parseError);
+			const positionMatch = errorMsg.match(/at position (\d+)/);
+			if (positionMatch) {
+				const pos = parseInt(positionMatch[1], 10);
+				const start = Math.max(0, pos - 100);
+				const end = Math.min(cleanedContent.length, pos + 100);
+				console.error(`Error context (around pos ${pos}):`, cleanedContent.substring(start, end));
+				console.error(`Error char code at pos ${pos}:`, cleanedContent.charCodeAt(pos));
+			}
+
 			console.error('Failed content (first 500 chars):', cleanedContent.substring(0, 500));
 			console.error('Failed content (last 200 chars):', cleanedContent.substring(Math.max(0, cleanedContent.length - 200)));
 			
 			// Provide more helpful error message
-			const errorMsg = parseError instanceof Error ? parseError.message : 'Unknown parse error';
 			throw new Error(`Invalid JSON response from Gemini (${errorMsg}). The response was likely truncated. Try generating fewer questions (current settings requested questions may be too many) or increase max tokens in settings.`);
 		}
 
@@ -1037,9 +1077,18 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 			} catch (parseError) {
 				console.error('JSON parse error:', parseError);
 				console.error('Failed content length:', cleanedContent.length);
+
+				// Log context around error position if available
+				const errorMsg = parseError instanceof Error ? parseError.message : String(parseError);
+				const positionMatch = errorMsg.match(/at position (\d+)/);
+				if (positionMatch) {
+					const pos = parseInt(positionMatch[1], 10);
+					const start = Math.max(0, pos - 100);
+					const end = Math.min(cleanedContent.length, pos + 100);
+					console.error(`Error context (around pos ${pos}):`, cleanedContent.substring(start, end));
+				}
 				
 				// Provide more helpful error message
-				const errorMsg = parseError instanceof Error ? parseError.message : 'Unknown parse error';
 				throw new Error(`Invalid JSON response from OpenRouter (${errorMsg}). The response was likely truncated. Try generating fewer questions or increase max tokens.`);
 			}
 
@@ -1132,9 +1181,18 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 			} catch (parseError) {
 				console.error('JSON parse error:', parseError);
 				console.error('Failed content length:', cleanedContent.length);
+
+				// Log context around error position if available
+				const errorMsg = parseError instanceof Error ? parseError.message : String(parseError);
+				const positionMatch = errorMsg.match(/at position (\d+)/);
+				if (positionMatch) {
+					const pos = parseInt(positionMatch[1], 10);
+					const start = Math.max(0, pos - 100);
+					const end = Math.min(cleanedContent.length, pos + 100);
+					console.error(`Error context (around pos ${pos}):`, cleanedContent.substring(start, end));
+				}
 				
 				// Provide more helpful error message
-				const errorMsg = parseError instanceof Error ? parseError.message : 'Unknown parse error';
 				throw new Error(`Invalid JSON response from Custom API (${errorMsg}). The response was likely truncated. Try generating fewer questions or increase max tokens.`);
 			}
 
