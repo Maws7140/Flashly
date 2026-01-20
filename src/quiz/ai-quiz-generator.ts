@@ -114,6 +114,9 @@ export class AIQuizGenerator {
 			case 'gemini':
 				response = await this.callGemini(prompt);
 				break;
+			case 'openrouter':
+				response = await this.callOpenRouter(prompt);
+				break;
 			case 'custom':
 				response = await this.callCustomAPI(prompt);
 				break;
@@ -519,6 +522,36 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 	}
 
 	/**
+	 * Clean JSON string from markdown and fix common format issues
+	 */
+	private cleanJsonString(content: string): string {
+		let cleaned = content.trim();
+
+		// 1. Remove markdown code blocks
+		const codeBlockRegex = /```(?:json)?\s*([\s\S]*?)\s*```/;
+		const match = cleaned.match(codeBlockRegex);
+		if (match) {
+			cleaned = match[1].trim();
+		} else {
+			// Handle cases with loose markdown or no code blocks
+			cleaned = cleaned.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+		}
+
+		// 2. Find JSON object boundaries
+		const firstBrace = cleaned.indexOf('{');
+		const lastBrace = cleaned.lastIndexOf('}');
+		if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+			cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+		}
+
+		// 3. Fix invalid escape sequences (common in LLM output)
+		// Replaces backslashes not followed by valid JSON escape chars (" \ / b f n r t u) with double backslashes
+		cleaned = cleaned.replace(/\\(?![/bfnrtu"\\\\])/g, "\\\\");
+
+		return cleaned;
+	}
+
+	/**
 	 * Remove duplicate questions based on prompt similarity
 	 */
 	private removeDuplicateQuestions(questions: QuizQuestion[]): QuizQuestion[] {
@@ -581,8 +614,30 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 			const data = response.json;
 			const content = data.choices[0].message.content;
 
-			// Parse JSON response
-			const parsed = JSON.parse(content as string) as ParsedAIResponse;
+			// Clean and parse JSON
+			const cleanedContent = this.cleanJsonString(content);
+
+			// Validate JSON structure before parsing
+			if (!cleanedContent.startsWith('{') || !cleanedContent.endsWith('}')) {
+				console.error('Content does not look like complete JSON after cleaning');
+				console.error('Starts with:', cleanedContent.substring(0, 50));
+				console.error('Ends with:', cleanedContent.substring(Math.max(0, cleanedContent.length - 50)));
+				throw new Error(`Response appears incomplete (doesn't start/end with braces). This usually means the response was truncated. Try generating fewer questions or increase max tokens.`);
+			}
+
+			// Try to parse JSON response
+			let parsed;
+			try {
+				parsed = JSON.parse(cleanedContent);
+			} catch (parseError) {
+				console.error('JSON parse error:', parseError);
+				console.error('Failed content length:', cleanedContent.length);
+				console.error('Failed content (first 500 chars):', cleanedContent.substring(0, 500));
+				
+				// Provide more helpful error message
+				const errorMsg = parseError instanceof Error ? parseError.message : 'Unknown parse error';
+				throw new Error(`Invalid JSON response from OpenAI (${errorMsg}). The response was likely truncated. Try generating fewer questions or increase max tokens.`);
+			}
 
 			// Add IDs to questions
 			const questions: QuizQuestion[] = parsed.questions.map((q: ParsedAIQuestion) => ({
@@ -603,6 +658,10 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 			};
 		} catch (error) {
 			console.error('OpenAI API error:', error);
+			// Pass through specific error messages
+			if (error.message && error.message.includes('Invalid JSON')) {
+				throw error;
+			}
 			throw new Error(`Failed to generate quiz with OpenAI: ${error.message}`);
 		}
 	}
@@ -644,8 +703,29 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 			const data = response.json;
 			const content = data.content[0].text;
 
-			// Parse JSON response
-			const parsed = JSON.parse(content as string) as ParsedAIResponse;
+			// Clean and parse JSON
+			const cleanedContent = this.cleanJsonString(content);
+
+			// Validate JSON structure before parsing
+			if (!cleanedContent.startsWith('{') || !cleanedContent.endsWith('}')) {
+				console.error('Content does not look like complete JSON after cleaning');
+				console.error('Starts with:', cleanedContent.substring(0, 50));
+				console.error('Ends with:', cleanedContent.substring(Math.max(0, cleanedContent.length - 50)));
+				throw new Error(`Response appears incomplete (doesn't start/end with braces). This usually means the response was truncated. Try generating fewer questions or increase max tokens.`);
+			}
+
+			// Try to parse JSON response
+			let parsed;
+			try {
+				parsed = JSON.parse(cleanedContent);
+			} catch (parseError) {
+				console.error('JSON parse error:', parseError);
+				console.error('Failed content length:', cleanedContent.length);
+				
+				// Provide more helpful error message
+				const errorMsg = parseError instanceof Error ? parseError.message : 'Unknown parse error';
+				throw new Error(`Invalid JSON response from Anthropic (${errorMsg}). The response was likely truncated. Try generating fewer questions or increase max tokens.`);
+			}
 
 			// Add IDs to questions
 			const questions: QuizQuestion[] = parsed.questions.map((q: ParsedAIQuestion) => ({
@@ -666,6 +746,10 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 			};
 		} catch (error) {
 			console.error('Anthropic API error:', error);
+			// Pass through specific error messages
+			if (error.message && error.message.includes('Invalid JSON')) {
+				throw error;
+			}
 			throw new Error(`Failed to generate quiz with Anthropic: ${error.message}`);
 		}
 	}
@@ -818,33 +902,26 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 		this.logger?.debug('Raw Gemini response (first 500 chars):', content.substring(0, 500) + '...');
 		this.logger?.debug('Raw Gemini response (last 200 chars):', '...' + content.substring(Math.max(0, content.length - 200)));
 
-		// Remove markdown code blocks if present (e.g., ```json ... ```)
-		content = content.trim();
-		if (content.startsWith('```')) {
-			// Remove opening ```json or ```
-			content = content.replace(/^```(?:json)?\s*\n/, '');
-			// Remove closing ```
-			content = content.replace(/\n```\s*$/, '');
-			content = content.trim();
-		}
+		// Clean and parse JSON
+		const cleanedContent = this.cleanJsonString(content);
 
 		// Validate JSON structure before parsing
-		if (!content.startsWith('{') || !content.endsWith('}')) {
-			console.error('Content does not look like complete JSON');
-			console.error('Starts with:', content.substring(0, 50));
-			console.error('Ends with:', content.substring(Math.max(0, content.length - 50)));
+		if (!cleanedContent.startsWith('{') || !cleanedContent.endsWith('}')) {
+			console.error('Content does not look like complete JSON after cleaning');
+			console.error('Starts with:', cleanedContent.substring(0, 50));
+			console.error('Ends with:', cleanedContent.substring(Math.max(0, cleanedContent.length - 50)));
 			throw new Error(`Response appears incomplete (doesn't start/end with braces). This usually means the response was truncated. Try generating fewer questions or increase max tokens.`);
 		}
 
 		// Try to parse JSON response
 		let parsed;
 		try {
-			parsed = JSON.parse(content as string);
+			parsed = JSON.parse(cleanedContent);
 		} catch (parseError) {
 			console.error('JSON parse error:', parseError);
-			console.error('Failed content length:', content.length);
-			console.error('Failed content (first 500 chars):', content.substring(0, 500));
-			console.error('Failed content (last 200 chars):', content.substring(Math.max(0, content.length - 200)));
+			console.error('Failed content length:', cleanedContent.length);
+			console.error('Failed content (first 500 chars):', cleanedContent.substring(0, 500));
+			console.error('Failed content (last 200 chars):', cleanedContent.substring(Math.max(0, cleanedContent.length - 200)));
 			
 			// Provide more helpful error message
 			const errorMsg = parseError instanceof Error ? parseError.message : 'Unknown parse error';
@@ -874,6 +951,98 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 				tokensUsed: data.usageMetadata?.totalTokenCount
 			}
 		};
+	}
+
+	/**
+	 * Call OpenRouter API
+	 */
+	private async callOpenRouter(prompt: string): Promise<AIQuizGenerationResponse> {
+		if (!this.settings.openrouter?.apiKey) {
+			throw new Error('OpenRouter API key not configured');
+		}
+
+		const baseUrl = this.settings.openrouter.baseUrl || 'https://openrouter.ai/api/v1';
+		const model = this.settings.openrouter.model || 'openai/gpt-3.5-turbo';
+
+		try {
+			const response = await requestUrl({
+				url: `${baseUrl}/chat/completions`,
+				method: 'POST',
+				headers: {
+					'Authorization': `Bearer ${this.settings.openrouter.apiKey}`,
+					'HTTP-Referer': 'https://github.com/Maws7140/Flashly', // Required by OpenRouter
+					'X-Title': 'Flashly Obsidian Plugin', // Required by OpenRouter
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					model,
+					messages: [
+						{
+							role: 'system',
+							content: this.settings.systemPrompt || 'You are a helpful educational assistant that generates quiz questions.'
+						},
+						{
+							role: 'user',
+							content: prompt
+						}
+					],
+					temperature: this.settings.temperature,
+					max_tokens: this.settings.maxTokens
+				})
+			});
+
+			const data = response.json;
+			const content = data.choices[0].message.content;
+
+			// Clean and parse JSON
+			const cleanedContent = this.cleanJsonString(content);
+
+			// Validate JSON structure before parsing
+			if (!cleanedContent.startsWith('{') || !cleanedContent.endsWith('}')) {
+				console.error('Content does not look like complete JSON after cleaning');
+				console.error('Starts with:', cleanedContent.substring(0, 50));
+				console.error('Ends with:', cleanedContent.substring(Math.max(0, cleanedContent.length - 50)));
+				throw new Error(`Response appears incomplete (doesn't start/end with braces). This usually means the response was truncated. Try generating fewer questions or increase max tokens.`);
+			}
+
+			// Try to parse JSON response
+			let parsed;
+			try {
+				parsed = JSON.parse(cleanedContent);
+			} catch (parseError) {
+				console.error('JSON parse error:', parseError);
+				console.error('Failed content length:', cleanedContent.length);
+				
+				// Provide more helpful error message
+				const errorMsg = parseError instanceof Error ? parseError.message : 'Unknown parse error';
+				throw new Error(`Invalid JSON response from OpenRouter (${errorMsg}). The response was likely truncated. Try generating fewer questions or increase max tokens.`);
+			}
+
+			// Add IDs to questions
+			const questions: QuizQuestion[] = parsed.questions.map((q: ParsedAIQuestion) => ({
+				id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+				type: q.type,
+				prompt: q.prompt,
+				options: q.options,
+				correctAnswer: q.correctAnswer,
+				explanation: q.explanation
+			}));
+
+			return {
+				questions,
+				metadata: {
+					model: data.model,
+					tokensUsed: data.usage?.total_tokens
+				}
+			};
+		} catch (error) {
+			console.error('OpenRouter API error:', error);
+			// Pass through specific error messages
+			if (error.message && error.message.includes('Invalid JSON')) {
+				throw error;
+			}
+			throw new Error(`Failed to generate quiz with OpenRouter: ${error.message}`);
+		}
 	}
 
 	/**
@@ -920,8 +1089,29 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 			const data = response.json;
 			const content = data.choices[0].message.content;
 
-			// Parse JSON response
-			const parsed = JSON.parse(content as string) as ParsedAIResponse;
+			// Clean and parse JSON
+			const cleanedContent = this.cleanJsonString(content);
+
+			// Validate JSON structure before parsing
+			if (!cleanedContent.startsWith('{') || !cleanedContent.endsWith('}')) {
+				console.error('Content does not look like complete JSON after cleaning');
+				console.error('Starts with:', cleanedContent.substring(0, 50));
+				console.error('Ends with:', cleanedContent.substring(Math.max(0, cleanedContent.length - 50)));
+				throw new Error(`Response appears incomplete (doesn't start/end with braces). This usually means the response was truncated. Try generating fewer questions or increase max tokens.`);
+			}
+
+			// Try to parse JSON response
+			let parsed;
+			try {
+				parsed = JSON.parse(cleanedContent);
+			} catch (parseError) {
+				console.error('JSON parse error:', parseError);
+				console.error('Failed content length:', cleanedContent.length);
+				
+				// Provide more helpful error message
+				const errorMsg = parseError instanceof Error ? parseError.message : 'Unknown parse error';
+				throw new Error(`Invalid JSON response from Custom API (${errorMsg}). The response was likely truncated. Try generating fewer questions or increase max tokens.`);
+			}
 
 			// Add IDs to questions
 			const questions: QuizQuestion[] = parsed.questions.map((q: ParsedAIQuestion) => ({
@@ -941,6 +1131,10 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 			};
 		} catch (error) {
 			console.error('Custom API error:', error);
+			// Pass through specific error messages
+			if (error.message && error.message.includes('Invalid JSON')) {
+				throw error;
+			}
 			throw new Error(`Failed to generate quiz with custom API: ${error.message}`);
 		}
 	}

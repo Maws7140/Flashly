@@ -1,5 +1,17 @@
 # Flashly Plugin - Changelog
 
+## [1.0.5] - 2025-01-XX
+
+### Added
+- **OpenRouter Support**: Now supports OpenRouter as a provider for AI quiz generation, giving access to a wide range of models (including Claude 3, GPT-4, Llama 3, etc.)
+- **Robust AI Error Handling**: Added smart JSON cleaning to all AI providers (OpenAI, Anthropic, Gemini, Custom, OpenRouter) to automatically fix common formatting issues like markdown code blocks and invalid escape sequences in AI responses.
+
+### Fixed
+- Fixed "Bad escaped character in JSON" errors that could occur with Gemini and other providers when they generate invalid JSON.
+- Improved resilience against truncated responses from AI models.
+
+---
+
 ## [1.0.4] - 2025-01-XX
 
 ### Added

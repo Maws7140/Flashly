@@ -289,6 +289,11 @@ class GenerateQuizModal extends Modal {
 					text: '⚠️ Gemini API key not configured. Please configure in settings.',
 					cls: 'quiz-warning'
 				});
+			} else if (this.plugin.settings.quiz.provider === 'openrouter' && !this.plugin.settings.quiz.openrouter?.apiKey) {
+				contentEl.createDiv({
+					text: '⚠️ OpenRouter API key not configured. Please configure in settings.',
+					cls: 'quiz-warning'
+				});
 			} else if (this.plugin.settings.quiz.provider === 'custom' && (!this.plugin.settings.quiz.custom?.apiKey || !this.plugin.settings.quiz.custom?.baseUrl)) {
 				contentEl.createDiv({
 					text: '⚠️ Custom API not fully configured. Please configure in settings.',

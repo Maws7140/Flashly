@@ -62,7 +62,7 @@ export interface QuizConfig {
 	selectedCardIds?: string[];         // Selected card IDs for AI quiz generation
 }
 
-export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'custom';
+export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'openrouter' | 'custom';
 
 export interface AIQuizSettings {
 	enabled: boolean;                    // Master toggle for AI features
@@ -81,6 +81,11 @@ export interface AIQuizSettings {
 		apiKey: string;
 		model: string;                   // e.g., "gemini-1.5-pro", "gemini-1.5-flash"
 		baseUrl?: string;
+	};
+	openrouter?: {
+		apiKey: string;
+		model: string;                   // e.g., "anthropic/claude-3-opus", "openai/gpt-4"
+		baseUrl?: string;                // Optional custom endpoint (default: https://openrouter.ai/api/v1)
 	};
 	custom?: {
 		apiKey: string;
@@ -208,6 +213,11 @@ export const DEFAULT_AI_QUIZ_SETTINGS: AIQuizSettings = {
 		apiKey: '',
 		model: 'gemini-1.5-flash', // Recommended: 'gemini-2.5-flash', 'gemini-2.0-flash', or 'gemini-1.5-flash'
 		baseUrl: 'https://generativelanguage.googleapis.com/v1beta' // Try 'v1' if you get 404 errors with newer models
+	},
+	openrouter: {
+		apiKey: '',
+		model: 'openai/gpt-3.5-turbo',
+		baseUrl: 'https://openrouter.ai/api/v1'
 	},
 	temperature: 0.7,
 	maxTokens: 4000,

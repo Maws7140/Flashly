@@ -365,6 +365,7 @@ export class FlashlySettingTab extends PluginSettingTab {
 					.addOption('openai', 'Openai (gpt-4, gpt-3.5)')
 					.addOption('anthropic', 'Anthropic (claude)')
 					.addOption('gemini', 'Google gemini')
+					.addOption('openrouter', 'OpenRouter (various models)')
 					.addOption('custom', 'Custom API endpoint')
 					.setValue(this.plugin.settings.quiz.provider)
 					.onChange(async (value) => {
@@ -509,6 +510,52 @@ export class FlashlySettingTab extends PluginSettingTab {
 							this.plugin.settings.quiz.gemini.model = value;
 							await this.plugin.saveSettings();
 						}));
+			}
+
+			// OpenRouter Settings
+			if (this.plugin.settings.quiz.provider === 'openrouter') {
+				new Setting(containerEl)
+					.setName('OpenRouter configuration')
+					.setHeading();
+
+				new Setting(containerEl)
+					.setName('API key')
+					.setDesc('Your OpenRouter API key')
+					.addText(text => {
+						text.inputEl.type = 'password';
+						text.setPlaceholder('sk-or-...');
+						text.setValue(this.plugin.settings.quiz.openrouter?.apiKey || '');
+						text.onChange(async (value) => {
+							if (!this.plugin.settings.quiz.openrouter) {
+								this.plugin.settings.quiz.openrouter = {
+									apiKey: '',
+									model: 'openai/gpt-3.5-turbo',
+									baseUrl: 'https://openrouter.ai/api/v1'
+								};
+							}
+							this.plugin.settings.quiz.openrouter.apiKey = value;
+							await this.plugin.saveSettings();
+						});
+					});
+
+				new Setting(containerEl)
+					.setName('Model')
+					.setDesc('OpenRouter model ID (e.g. anthropic/claude-3-opus, openai/gpt-4)')
+					.addText(text => {
+						text.setPlaceholder('openai/gpt-3.5-turbo');
+						text.setValue(this.plugin.settings.quiz.openrouter?.model || 'openai/gpt-3.5-turbo');
+						text.onChange(async (value) => {
+							if (!this.plugin.settings.quiz.openrouter) {
+								this.plugin.settings.quiz.openrouter = {
+									apiKey: '',
+									model: 'openai/gpt-3.5-turbo',
+									baseUrl: 'https://openrouter.ai/api/v1'
+								};
+							}
+							this.plugin.settings.quiz.openrouter.model = value;
+							await this.plugin.saveSettings();
+						});
+					});
 			}
 
 			// Custom API Settings
