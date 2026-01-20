@@ -305,7 +305,8 @@ export class QuizView extends ItemView {
 					cls: 'quiz-nav-btn quiz-nav-primary'
 				});
 
-				checkBtn.addEventListener('click', () => {
+				checkBtn.addEventListener('click', (e) => {
+					e.preventDefault();
 					void this.handleCheckAnswer();
 				});
 			} else {
@@ -315,7 +316,8 @@ export class QuizView extends ItemView {
 					cls: 'quiz-nav-btn quiz-nav-primary'
 				});
 
-				continueBtn.addEventListener('click', () => {
+				continueBtn.addEventListener('click', (e) => {
+					e.preventDefault();
 					this.handleLearnModeContinue();
 				});
 			}
@@ -323,7 +325,8 @@ export class QuizView extends ItemView {
 			// Normal mode navigation
 			if (this.currentQuestionIndex > 0) {
 				const prevBtn = nav.createEl('button', { text: '← previous', cls: 'quiz-nav-btn' });
-				prevBtn.addEventListener('click', () => {
+				prevBtn.addEventListener('click', (e) => {
+					e.preventDefault();
 					this.currentQuestionIndex--;
 					void this.saveQuizProgress();
 					void this.render();
@@ -335,7 +338,8 @@ export class QuizView extends ItemView {
 				cls: 'quiz-nav-btn quiz-nav-primary'
 			});
 
-			nextBtn.addEventListener('click', () => {
+			nextBtn.addEventListener('click', (e) => {
+				e.preventDefault();
 				if (!this.currentQuiz) return;
 
 				if (this.currentQuestionIndex < this.currentQuiz.totalQuestions - 1) {
@@ -399,7 +403,8 @@ export class QuizView extends ItemView {
 				optionBtn.addClass('quiz-option-selected');
 			}
 
-			optionBtn.addEventListener('click', () => {
+			optionBtn.addEventListener('click', (e) => {
+				e.preventDefault();
 				question.userAnswer = index;
 				void this.saveQuizProgress();
 				void this.render();
@@ -503,7 +508,8 @@ export class QuizView extends ItemView {
 				optionBtn.addClass('quiz-option-selected');
 			}
 
-			optionBtn.addEventListener('click', () => {
+			optionBtn.addEventListener('click', (e) => {
+				e.preventDefault();
 				question.userAnswer = answerValue;
 				void this.saveQuizProgress();
 				void this.render();
@@ -796,7 +802,8 @@ export class QuizView extends ItemView {
 		const newQuizIcon = newQuizBtn.createSpan({ cls: 'quiz-btn-icon' });
 		setIcon(newQuizIcon, 'refresh-cw');
 		newQuizBtn.prepend(newQuizIcon);
-		newQuizBtn.addEventListener('click', () => {
+		newQuizBtn.addEventListener('click', (e) => {
+			e.preventDefault();
 			// Trigger the generate-quiz command
 			(this.app as ObsidianApp).commands.executeCommandById('flashly:generate-quiz');
 		});
@@ -805,7 +812,8 @@ export class QuizView extends ItemView {
 			text: 'Close',
 			cls: 'quiz-action-btn'
 		});
-		closeBtn.addEventListener('click', () => {
+		closeBtn.addEventListener('click', (e) => {
+			e.preventDefault();
 			this.leaf.detach();
 		});
 	}
