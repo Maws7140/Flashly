@@ -1,6 +1,6 @@
 # Flashly Plugin - Changelog
 
-## [1.1.0] - 2025-01-XX
+## [1.0.4] - 2025-01-XX
 
 ### Added
 - **Card Selection for AI Quiz Generation**: When AI quiz generation is enabled, users can now select specific cards to include in the AI context
