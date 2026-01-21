@@ -1,5 +1,15 @@
 # Flashly Plugin - Changelog
 
+## [1.0.7] - 2026-XX-XX
+
+### Added
+- 
+
+### Fixed
+- 
+
+---
+
 ## [1.0.6] - 2026-01-21
 
 ### Fixed
