@@ -1,12 +1,11 @@
 # Flashly Plugin - Changelog
 
-## [1.0.6] - 2026-XX-XX
-
-### Added
-- 
+## [1.0.6] - 2026-01-21
 
 ### Fixed
-- 
+- Improved error handling for AI providers to display specific API error messages (e.g., "Rate limit exceeded") instead of generic status codes.
+- Fixed an issue where Gemini API errors were not being correctly reported to the user.
+
 
 ---
 
