@@ -1,6 +1,6 @@
 # Flashly Plugin - Changelog
 
-## [1.0.5] - 2025-01-XX
+## [1.0.5] - 2026-01-21
 
 ### Added
 - **OpenRouter Support**: Now supports OpenRouter as a provider for AI quiz generation, giving access to a wide range of models (including Claude 3, GPT-4, Llama 3, etc.)

@@ -701,8 +701,25 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 					tokensUsed: data.usage?.total_tokens
 				}
 			};
-		} catch (error) {
+		} catch (requestError: unknown) {
+			const error = requestError as any;
 			console.error('OpenAI API error:', error);
+
+			// Handle HTTP errors with response details
+			if (error.status) {
+				let errorDetails = error.message || 'Unknown error';
+				try {
+					if (error.json?.error?.message) {
+						errorDetails = error.json.error.message;
+					} else if (error.text) {
+						errorDetails = error.text;
+					}
+				} catch (e) {
+					// Ignore parsing errors
+				}
+				throw new Error(`OpenAI API returned ${error.status}: ${errorDetails}`);
+			}
+
 			// Pass through specific error messages
 			if (error.message && error.message.includes('Invalid JSON')) {
 				throw error;
@@ -798,8 +815,25 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 					tokensUsed: data.usage?.input_tokens + data.usage?.output_tokens
 				}
 			};
-		} catch (error) {
+		} catch (requestError: unknown) {
+			const error = requestError as any;
 			console.error('Anthropic API error:', error);
+
+			// Handle HTTP errors with response details
+			if (error.status) {
+				let errorDetails = error.message || 'Unknown error';
+				try {
+					if (error.json?.error?.message) {
+						errorDetails = error.json.error.message;
+					} else if (error.text) {
+						errorDetails = error.text;
+					}
+				} catch (e) {
+					// Ignore parsing errors
+				}
+				throw new Error(`Anthropic API returned ${error.status}: ${errorDetails}`);
+			}
+
 			// Pass through specific error messages
 			if (error.message && error.message.includes('Invalid JSON')) {
 				throw error;
@@ -1109,8 +1143,25 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 					tokensUsed: data.usage?.total_tokens
 				}
 			};
-		} catch (error) {
+		} catch (requestError: unknown) {
+			const error = requestError as any;
 			console.error('OpenRouter API error:', error);
+
+			// Handle HTTP errors with response details
+			if (error.status) {
+				let errorDetails = error.message || 'Unknown error';
+				try {
+					if (error.json?.error?.message) {
+						errorDetails = error.json.error.message;
+					} else if (error.text) {
+						errorDetails = error.text;
+					}
+				} catch (e) {
+					// Ignore parsing errors
+				}
+				throw new Error(`OpenRouter API returned ${error.status}: ${errorDetails}`);
+			}
+
 			// Pass through specific error messages
 			if (error.message && error.message.includes('Invalid JSON')) {
 				throw error;
@@ -1212,8 +1263,25 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 					model: this.settings.custom.model
 				}
 			};
-		} catch (error) {
+		} catch (requestError: unknown) {
+			const error = requestError as any;
 			console.error('Custom API error:', error);
+
+			// Handle HTTP errors with response details
+			if (error.status) {
+				let errorDetails = error.message || 'Unknown error';
+				try {
+					if (error.json?.error?.message) {
+						errorDetails = error.json.error.message;
+					} else if (error.text) {
+						errorDetails = error.text;
+					}
+				} catch (e) {
+					// Ignore parsing errors
+				}
+				throw new Error(`Custom API returned ${error.status}: ${errorDetails}`);
+			}
+
 			// Pass through specific error messages
 			if (error.message && error.message.includes('Invalid JSON')) {
 				throw error;
