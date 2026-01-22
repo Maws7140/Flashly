@@ -561,20 +561,20 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 		// Fix LaTeX commands that became control characters
 		// These occur when the AI outputs "\text" (tab) instead of "\\text"
 		
-		// \t (TAB \x09) clashes: \text, \tau, \theta, \times, \tan, \top, \to, \triangle, \therefore
-		cleaned = cleaned.replace(/\x09(ext|au|heta|imes|an|op|o|riangle|herefore)/g, "\\\\t$1");
+		// \t -> \text, \tau, \theta, \times, \tan, \top, \to, \triangle, \therefore
+		cleaned = cleaned.replace(/\\t(ext|au|heta|imes|an|op|o|riangle|herefore)\b/g, "\\\\t$1");
 		
-		// \n (LF \x0A) clashes: \nu, \neq, \nabla, \neg
-		cleaned = cleaned.replace(/\x0A(u|eq|abla|eg)/g, "\\\\n$1");
+		// \n -> \nu, \neq, \nabla, \neg
+		cleaned = cleaned.replace(/\\n(u|eq|abla|eg)\b/g, "\\\\n$1");
 		
-		// \r (CR \x0D) clashes: \rho, \right, \ref
-		cleaned = cleaned.replace(/\x0D(ho|ight|ef)/g, "\\\\r$1");
+		// \r -> \rho, \right, \ref
+		cleaned = cleaned.replace(/\\r(ho|ight|ef)\b/g, "\\\\r$1");
 		
-		// \f (FF \x0C) clashes: \frac, \forall, \foot
-		cleaned = cleaned.replace(/\x0C(rac|orall|oot)/g, "\\\\f$1");
+		// \f -> \frac, \forall, \foot
+		cleaned = cleaned.replace(/\\f(rac|orall|oot)\b/g, "\\\\f$1");
 		
-		// \b (BS \x08) clashes: \beta, \begin, \bf, \bar, \binom
-		cleaned = cleaned.replace(/\x08(eta|egin|f|ar|inom)/g, "\\\\b$1");
+		// \b -> \beta, \begin, \bf, \bar, \binom
+		cleaned = cleaned.replace(/\\b(eta|egin|f|ar|inom)\b/g, "\\\\b$1");
 
 		// Replace backslashes not followed by valid JSON escape chars (" \ / b f n r t u)
 		// We use a callback to be explicit and safe
