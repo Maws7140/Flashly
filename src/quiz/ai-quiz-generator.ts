@@ -559,22 +559,24 @@ Respond ONLY with valid JSON in the format above. Do not include any other text.
 		cleaned = cleaned.replace(/\\u(?![0-9a-fA-F]{4})/g, "\\\\u");
 
 		// Fix LaTeX commands that became control characters
-		// These occur when the AI outputs "\text" (tab) instead of "\\text"
+		// These occur when the AI outputs "\text" which the JSON parser interprets as a Tab,
+		// or "\frac" as Form Feed, etc.
+		// We need to match BOTH the literal control characters (if already parsed) AND the escaped sequence \\t (if stringified)
 		
-		// \t -> \text, \tau, \theta, \times, \tan, \top, \to, \triangle, \therefore
-		cleaned = cleaned.replace(/\\t(ext|au|heta|imes|an|op|o|riangle|herefore)\b/g, "\\\\t$1");
+		// \t (Tab) -> \text, \tau, \theta, \times, \tan, \top, \to, \triangle, \therefore, \tilde, \tiny, \tt
+		cleaned = cleaned.replace(/(?:\\t|\t)(ext|au|heta|imes|an|op|o|riangle|herefore|ilde|iny|itle|oday|t|woheadrightarrow)\b/g, "\\\\t$1");
 		
-		// \n -> \nu, \neq, \nabla, \neg
-		cleaned = cleaned.replace(/\\n(u|eq|abla|eg)\b/g, "\\\\n$1");
+		// \n (Newline) -> \nu, \neq, \nabla, \neg, \natural, \nearrow, \not, \notin
+		cleaned = cleaned.replace(/(?:\\n|\n)(u|eq|abla|eg|atural|earrow|e|ot|otin)\b/g, "\\\\n$1");
 		
-		// \r -> \rho, \right, \ref
-		cleaned = cleaned.replace(/\\r(ho|ight|ef)\b/g, "\\\\r$1");
+		// \r (CR) -> \rho, \right, \ref, \rangle, \rceil, \rfloor, \rightarrow
+		cleaned = cleaned.replace(/(?:\\r|\r)(ho|ight|ef|angle|ceil|floor|hd|ightarrow)\b/g, "\\\\r$1");
 		
-		// \f -> \frac, \forall, \foot
-		cleaned = cleaned.replace(/\\f(rac|orall|oot)\b/g, "\\\\f$1");
+		// \f (Form Feed) -> \frac, \forall, \foot, \flat
+		cleaned = cleaned.replace(/(?:\\f|\f)(rac|orall|oot|lat|rame)\b/g, "\\\\f$1");
 		
-		// \b -> \beta, \begin, \bf, \bar, \binom
-		cleaned = cleaned.replace(/\\b(eta|egin|f|ar|inom)\b/g, "\\\\b$1");
+		// \b (Backspace) -> \beta, \begin, \bf, \bar, \binom, \big, \bot
+		cleaned = cleaned.replace(/(?:\\b|[\b])(eta|egin|f|ar|inom|ig|oolean|ot|race|rack|reak)\b/g, "\\\\b$1");
 
 		// Replace backslashes not followed by valid JSON escape chars (" \ / b f n r t u)
 		// We use a callback to be explicit and safe

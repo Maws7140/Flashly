@@ -1,6 +1,6 @@
 {
 	"name": "flashly",
-	"version": "1.0.9",
+	"version": "1.0.10",
 	"description": "Powerful spaced repetition flashcards with FSRS algorithm and AI-powered quiz generation for Obsidian.",
 	"main": "main.js",
 	"scripts": {

@@ -1,12 +1,10 @@
 # Flashly Plugin - Changelog
 
-## [1.0.9] - 2026-XX-XX
-
-### Added
-- 
+## [1.0.9] - 2026-01-21
 
 ### Fixed
-- 
+- Fixed a critical issue where LaTeX math commands (e.g., `\text`, `\frac`) were being incorrectly parsed as control characters in AI-generated quizzes, causing equations to render incorrectly.
+- Improved robustness of JSON cleaning for AI responses to handle both escaped and literal control characters.
 
 ---
 
