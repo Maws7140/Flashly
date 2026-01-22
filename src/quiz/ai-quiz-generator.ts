@@ -439,14 +439,48 @@ export class AIQuizGenerator {
 		audioMetadata: Record<string, { front: string[], back: string[] }>
 	): string {
 		const questionTypes = [];
-		if (config.includeMultipleChoice) questionTypes.push('multiple-choice');
-		if (config.includeFillBlank) questionTypes.push('fill-in-the-blank');
-		if (config.includeTrueFalse) questionTypes.push('true-false');
+		const exampleQuestions = [];
+
+		if (config.includeMultipleChoice) {
+			questionTypes.push('multiple-choice');
+			exampleQuestions.push({
+				type: "multiple-choice",
+				prompt: "Question text here",
+				options: ["Option A", "Option B", "Option C", "Option D"],
+				correctAnswer: 0,
+				explanation: "Optional explanation"
+			});
+		}
+		if (config.includeFillBlank) {
+			questionTypes.push('fill-in-the-blank');
+			exampleQuestions.push({
+				type: "fill-blank",
+				prompt: "Question with _____ to fill",
+				correctAnswer: "answer text",
+				explanation: "Optional explanation"
+			});
+		}
+		if (config.includeTrueFalse) {
+			questionTypes.push('true-false');
+			exampleQuestions.push({
+				type: "true-false",
+				prompt: "Statement to evaluate",
+				options: ["True", "False"],
+				correctAnswer: "true",
+				explanation: "Optional explanation"
+			});
+		}
 		
 		// Check if any cards have audio
 		const hasAudio = Object.values(audioMetadata).some(m => m.front.length > 0 || m.back.length > 0);
 		if (hasAudio) {
 			questionTypes.push('audio-prompt');
+			exampleQuestions.push({
+				type: "audio-prompt",
+				prompt: "[AUDIO:0] Listen and answer",
+				correctAnswer: "answer text",
+				explanation: "Optional explanation"
+			});
 		}
 
 		let audioInstructions = '';
@@ -460,6 +494,8 @@ export class AIQuizGenerator {
 - Audio placeholders [AUDIO:cardId:index] should be preserved EXACTLY in your responses where applicable
 - For cards with audio, you may generate "audio-prompt" questions that focus on the audio content`;
 		}
+
+		const exampleJson = JSON.stringify({ questions: exampleQuestions }, null, 2);
 
 		return `You are an educational quiz generator. Generate ${config.questionCount} quiz questions from the following flashcards.
 
@@ -477,7 +513,7 @@ ${cards.map((card, i) => {
 1. Generate exactly ${config.questionCount} questions
 2. Each question must be based on the CONTENT of specific flashcard(s), not on general topics or deck names
 3. Generate questions from the card content shown. You may create multiple questions from a single card, or questions that combine content from multiple cards, but each question must be directly derived from the flashcard content shown
-4. Distribute questions evenly across the requested types
+4. Distribute questions evenly across the requested types ONLY. Do NOT generate question types that are not listed above.
 5. For multiple-choice questions, provide 4 options with the correct answer
 6. For fill-in-the-blank, create a clear prompt with a blank to fill
 7. For true-false, create statements that test understanding
@@ -488,36 +524,7 @@ ${cards.map((card, i) => {
 	12. For LaTeX math, use $...$. Ensure backslashes in LaTeX are double-escaped (e.g. use \\text{...}, \\frac{...})${audioInstructions}
 
 **Response Format (JSON):**
-{
-  "questions": [
-    {
-      "type": "multiple-choice",
-      "prompt": "Question text here",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correctAnswer": 0,
-      "explanation": "Optional explanation"
-    },
-    {
-      "type": "fill-blank",
-      "prompt": "Question with _____ to fill",
-      "correctAnswer": "answer text",
-      "explanation": "Optional explanation"
-    },
-    {
-      "type": "true-false",
-      "prompt": "Statement to evaluate",
-      "options": ["True", "False"],
-      "correctAnswer": "true",
-      "explanation": "Optional explanation"
-    },
-    {
-      "type": "audio-prompt",
-      "prompt": "[AUDIO:0] Listen and answer",
-      "correctAnswer": "answer text",
-      "explanation": "Optional explanation"
-    }
-  ]
-}
+${exampleJson}
 
 Respond ONLY with valid JSON in the format above. Do not include any other text.`;
 	}
