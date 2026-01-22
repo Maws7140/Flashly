@@ -1,12 +1,21 @@
 # Flashly Plugin - Changelog
 
-## [1.0.7] - 2026-XX-XX
+## [1.0.8] - 2026-XX-XX
 
 ### Added
 - 
 
 ### Fixed
 - 
+
+---
+
+## [1.0.7] - 2026-01-21
+
+### Fixed
+- Fixed an issue where the AI would generate disabled question types (e.g., fill-in-the-blank) even when toggled off.
+- Updated AI prompt generation to dynamically include only the requested question formats and examples.
+
 
 ---
 
