@@ -41,7 +41,7 @@ export class ReviewQueueService {
 		} = options;
 
 		const current = now ?? new Date();
-		const cards = this.filterCards(this.storage.getAllCards(), {
+	    const cards = this.filterCards(this.storage.getActiveCards(), {
 			decks,
 			includeLearning,
 			excludeEmptyAnswers

@@ -98,7 +98,7 @@ export class ExportService {
 	 * Filter cards based on export options
 	 */
 	private filterCards(options: ExportOptions): FlashlyCard[] {
-		let cards = this.storage.getAllCards();
+		let cards = this.storage.getActiveCards();
 
 		// Filter by deck
 		if (options.selectedDecks && options.selectedDecks.length > 0) {
@@ -253,7 +253,7 @@ export class ExportService {
 	 */
 	getAvailableTags(): string[] {
 		const tags = new Set<string>();
-		const cards = this.storage.getAllCards();
+		const cards = this.storage.getActiveCards();
 		
 		for (const card of cards) {
 			for (const tag of card.tags) {

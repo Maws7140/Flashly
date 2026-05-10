@@ -3,7 +3,15 @@
  * Supports both traditional and AI-generated quizzes
  */
 
-export type QuizQuestionType = 'multiple-choice' | 'fill-blank' | 'true-false' | 'audio-prompt';
+export type QuizQuestionType = 'multiple-choice' | 'fill-blank' | 'true-false' | 'audio-prompt' | 'match';
+
+export interface QuizMatchPair {
+	left: string;
+	right: string;
+	sourceCardId?: string;
+}
+
+export type QuizAnswer = string | number | QuizMatchPair[];
 
 export type QuizGenerationMethod = 'traditional' | 'ai-generated';
 
@@ -14,8 +22,8 @@ export interface QuizQuestion {
 	type: QuizQuestionType;              // Question type
 	prompt: string;                      // Question text
 	options?: string[];                  // Options for multiple choice (undefined for others)
-	correctAnswer: string | number;      // Correct answer (string or index)
-	userAnswer?: string | number;        // User's answer
+	correctAnswer: QuizAnswer;           // Correct answer (string, index, or pairs)
+	userAnswer?: QuizAnswer;              // User's answer
 	correct?: boolean;                   // Whether user answered correctly
 	sourceCardId?: string;               // Original card ID (for traditional)
 	explanation?: string;                // Explanation for the answer (AI can provide this)
@@ -55,6 +63,7 @@ export interface QuizConfig {
 	includeMultipleChoice: boolean;      // Include MC questions
 	includeFillBlank: boolean;           // Include fill-in-blank questions
 	includeTrueFalse: boolean;           // Include true/false questions
+	includeMatch?: boolean;              // Include matching questions
 	deckFilter?: string[];               // Optional deck filter
 	useAI: boolean;                      // Use AI generation
 	aiProvider?: AIProvider;             // AI provider if using AI
@@ -169,7 +178,23 @@ export function calculateQuizScore(quiz: Quiz): { score: number; correctCount: n
 /**
  * Check if question answer is correct
  */
-export function checkAnswer(question: QuizQuestion, userAnswer: string | number): boolean {
+
+function normalizeMatchPair(pair: QuizMatchPair): string {
+	return `${pair.left.trim().toLowerCase()}=>${pair.right.trim().toLowerCase()}`;
+}
+
+export function checkAnswer(question: QuizQuestion, userAnswer: QuizAnswer): boolean {
+	if (question.type === 'match' && Array.isArray(question.correctAnswer) && Array.isArray(userAnswer)) {
+		const correctPairs = [...question.correctAnswer].map(normalizeMatchPair).sort();
+		const userPairs = [...userAnswer].map(normalizeMatchPair).sort();
+
+		if (correctPairs.length !== userPairs.length) {
+			return false;
+		}
+
+		return correctPairs.every((pair, index) => pair === userPairs[index]);
+	}
+
 	if (question.type === 'multiple-choice' && typeof question.correctAnswer === 'number') {
 		return userAnswer === question.correctAnswer;
 	}
@@ -189,6 +214,7 @@ export const DEFAULT_QUIZ_CONFIG: QuizConfig = {
 	includeMultipleChoice: true,
 	includeFillBlank: true,
 	includeTrueFalse: true,
+	includeMatch: false,
 	useAI: false,
 	learnMode: false
 };

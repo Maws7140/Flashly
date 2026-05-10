@@ -210,12 +210,22 @@ export class BrowserViewModel {
     const totalCards = this.cards.length;
     const deckCount = this.getAvailableDecks().length;
 
-    // Calculate cards due today (due date <= end of today)
-    const endOfToday = new Date();
-    endOfToday.setHours(23, 59, 59, 999);
-    const cardsDueToday = this.cards.filter(
-      (card) => card.fsrsCard.due.getTime() <= endOfToday.getTime()
-    ).length;
+      // Calculate cards due today (includes past due and those with same local date)
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      const cardsDueToday = this.cards.filter((card) => {
+        const due = card.fsrsCard.due;
+        if (!due) return false;
+        const dueTime = due.getTime();
+        // Past due
+        if (dueTime < startOfToday.getTime()) return true;
+        // Due later today (same local calendar date)
+        return (
+          due.getFullYear() === now.getFullYear() &&
+          due.getMonth() === now.getMonth() &&
+          due.getDate() === now.getDate()
+        );
+      }).length;
 
     return {
       totalCards,

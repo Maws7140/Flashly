@@ -29,7 +29,7 @@ export class ScanCommand {
    * Get command ID for registration
    */
   getId(): string {
-    return 'scan-vault';
+    return 'flashly-scan-vault';
   }
 
   /**

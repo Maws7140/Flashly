@@ -117,7 +117,7 @@ export class FlashcardBrowserView extends ItemView {
    * Refresh cards from storage
    */
   private refreshCards(): void {
-    const cards = this.plugin.storage.getAllCards();
+    const cards = this.plugin.storage.getActiveCards();
     this.viewModel.setCards(cards);
     void this.render();
   }
@@ -325,6 +325,13 @@ export class FlashcardBrowserView extends ItemView {
   private sortDecks(decks: DeckInfo[]): DeckInfo[] {
     const sorted = [...decks];
 
+    // Put starred decks first
+    sorted.sort((a, b) => {
+      const aStar = this.plugin.storage.isDeckStarred(a.name) ? 1 : 0;
+      const bStar = this.plugin.storage.isDeckStarred(b.name) ? 1 : 0;
+      return bStar - aStar; // starred (1) comes before non-starred (0)
+    });
+
     switch (this.deckSortBy) {
       case 'name-asc':
         sorted.sort((a, b) => a.name.localeCompare(b.name));
@@ -449,7 +456,12 @@ export class FlashcardBrowserView extends ItemView {
     setIcon(deckIconEl, deck.hasChildren ? 'folder' : 'book-open');
 
     // Show full path (could be configurable in settings)
-    header.createSpan({ cls: 'deck-name', text: deck.name });
+    const nameEl = header.createSpan({ cls: 'deck-name', text: deck.name });
+    // Show starred indicator
+    if (this.plugin.storage.isDeckStarred(deck.name)) {
+      const starEl = header.createSpan({ cls: 'deck-star-icon' });
+      setIcon(starEl, 'star');
+    }
 
     // Statistics
     const stats = card.createDiv({ cls: 'deck-stats' });
@@ -505,6 +517,39 @@ export class FlashcardBrowserView extends ItemView {
       evt.preventDefault();
       evt.stopPropagation();
       void this.startDeckReview(deck);
+    });
+
+    // Actions: star and archive
+    const actions = card.createDiv({ cls: 'deck-card-actions' });
+
+    const starBtn = actions.createEl('button', { cls: 'deck-action-btn', attr: { 'aria-label': 'Star deck' } });
+    const starIcon = starBtn.createSpan({ cls: 'deck-action-icon' });
+    setIcon(starIcon, this.plugin.storage.isDeckStarred(deck.name) ? 'star' : 'star');
+    starBtn.addEventListener('click', (evt) => {
+      evt.preventDefault();
+      evt.stopPropagation();
+      void (async () => {
+        this.plugin.storage.toggleDeckStarred(deck.name);
+        await this.plugin.storage.save();
+        this.refreshCards();
+        if (this.plugin) this.plugin.refreshBrowserViews();
+      })();
+    });
+
+    const archiveBtn = actions.createEl('button', { cls: 'deck-action-btn', attr: { 'aria-label': 'Archive deck' } });
+    const archiveIcon = archiveBtn.createSpan({ cls: 'deck-action-icon' });
+    setIcon(archiveIcon, 'archive');
+    archiveBtn.addEventListener('click', (evt) => {
+      evt.preventDefault();
+      evt.stopPropagation();
+      void (async () => {
+        this.plugin.storage.toggleDeckArchived(deck.name);
+        await this.plugin.storage.save();
+        // Archived decks are removed from the active list
+        this.refreshCards();
+        if (this.plugin) this.plugin.refreshBrowserViews();
+        new Notice(`${deck.displayName} ${this.plugin.storage.isDeckArchived(deck.name) ? 'archived' : 'unarchived'}`);
+      })();
     });
 
     // Make entire card clickable

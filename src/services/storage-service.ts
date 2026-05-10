@@ -11,6 +11,7 @@ interface StorageData {
   cards: Record<string, SerializedCard>;
   lastSync: number;
   reviewStats?: SerializedReviewStatistics;
+  decks?: Record<string, SerializedDeck>;
 }
 
 interface SerializedCard {
@@ -52,8 +53,21 @@ const DEFAULT_REVIEW_STATS: ReviewStatistics = {
   lastReviewDate: null
 };
 
+interface DeckMetadata {
+  archived: boolean;
+  starred: boolean;
+  updated: Date;
+}
+
+interface SerializedDeck {
+  archived: boolean;
+  starred: boolean;
+  updated: string;
+}
+
 export class StorageService {
   private cards: Map<string, FlashlyCard> = new Map();
+  private deckMetadata: Map<string, DeckMetadata> = new Map();
   private plugin: Plugin;
   private reviewStats: ReviewStatistics = { ...DEFAULT_REVIEW_STATS };
 
@@ -76,6 +90,13 @@ export class StorageService {
     // Deserialize cards
     for (const [id, serialized] of Object.entries(data.cards)) {
       this.cards.set(id, this.deserializeCard(serialized));
+    }
+
+    // Load deck metadata if present
+    if (data.decks) {
+      for (const [name, s] of Object.entries(data.decks)) {
+        this.deckMetadata.set(name, this.deserializeDeck(s));
+      }
     }
 
     if (data.reviewStats) {
@@ -106,10 +127,19 @@ export class StorageService {
     // Merge with existing data to preserve other service's data
     const mergedData = {
       ...existingData,
-      ...storageData
+      ...storageData,
+      decks: this.serializeAllDecks()
     };
 
     await this.plugin.saveData(mergedData);
+  }
+
+  private serializeAllDecks(): Record<string, SerializedDeck> {
+    const out: Record<string, SerializedDeck> = {};
+    for (const [name, meta] of this.deckMetadata.entries()) {
+      out[name] = this.serializeDeck(meta);
+    }
+    return out;
   }
 
   /**
@@ -140,6 +170,13 @@ export class StorageService {
    */
   getAllCards(): FlashlyCard[] {
     return Array.from(this.cards.values());
+  }
+
+  /**
+   * Get cards from non-archived decks only.
+   */
+  getActiveCards(): FlashlyCard[] {
+    return Array.from(this.cards.values()).filter(c => !this.isDeckArchived(c.deck));
   }
 
   /**
@@ -205,6 +242,21 @@ export class StorageService {
     for (const card of this.cards.values()) {
       decks.add(card.deck);
     }
+    // Exclude archived decks by default
+    return Array.from(decks).filter((d) => !this.isDeckArchived(d));
+  }
+
+  /**
+   * Return all known deck names including archived ones.
+   */
+  getAllKnownDeckNames(): string[] {
+    const decks = new Set<string>();
+    for (const card of this.cards.values()) {
+      decks.add(card.deck);
+    }
+    for (const name of this.deckMetadata.keys()) {
+      decks.add(name);
+    }
     return Array.from(decks);
   }
 
@@ -219,6 +271,52 @@ export class StorageService {
     };
   }
 
+  // ===== Deck metadata helpers =====
+
+  isDeckArchived(deckName: string): boolean {
+    const meta = this.deckMetadata.get(deckName);
+    return meta ? !!meta.archived : false;
+  }
+
+  isDeckStarred(deckName: string): boolean {
+    const meta = this.deckMetadata.get(deckName);
+    return meta ? !!meta.starred : false;
+  }
+
+  toggleDeckArchived(deckName: string): void {
+    const meta = this.deckMetadata.get(deckName) || { archived: false, starred: false, updated: new Date() };
+    meta.archived = !meta.archived;
+    meta.updated = new Date();
+    this.deckMetadata.set(deckName, meta);
+  }
+
+  toggleDeckStarred(deckName: string): void {
+    const meta = this.deckMetadata.get(deckName) || { archived: false, starred: false, updated: new Date() };
+    meta.starred = !meta.starred;
+    meta.updated = new Date();
+    this.deckMetadata.set(deckName, meta);
+  }
+
+  getDeckMetadata(deckName: string): DeckMetadata | undefined {
+    return this.deckMetadata.get(deckName);
+  }
+
+  private serializeDeck(d: DeckMetadata): SerializedDeck {
+    return {
+      archived: !!d.archived,
+      starred: !!d.starred,
+      updated: d.updated.toISOString()
+    };
+  }
+
+  private deserializeDeck(s: SerializedDeck): DeckMetadata {
+    return {
+      archived: !!s.archived,
+      starred: !!s.starred,
+      updated: s.updated ? new Date(s.updated) : new Date(0)
+    };
+  }
+  
   getReviewStatistics(): ReviewStatistics {
     return { ...this.reviewStats };
   }

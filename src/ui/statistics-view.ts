@@ -62,7 +62,7 @@ export class StatisticsView extends ItemView {
 	});
 	setIcon(refreshBtn, 'refresh-cw');
 	refreshBtn.addEventListener('click', () => this.queueRender());		// Get all cards
-		const cards = this.plugin.storage.getAllCards();
+ 		const cards = this.plugin.storage.getActiveCards();
 
 		// Overview Cards
 		this.renderOverviewCards(container, cards);

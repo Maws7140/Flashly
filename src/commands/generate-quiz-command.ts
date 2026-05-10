@@ -87,6 +87,16 @@ class GenerateQuizModal extends Modal {
 				});
 			});
 
+		new Setting(contentEl)
+			.setName('Match pairs')
+			.setDesc('Include matching questions where you pair terms with definitions')
+			.addToggle(toggle => {
+				toggle.setValue(this.config.includeMatch ?? false);
+				toggle.onChange(value => {
+					this.config.includeMatch = value;
+				});
+			});
+
 		// Learn Mode
 		new Setting(contentEl)
 			.setName('Learn mode')
@@ -103,8 +113,8 @@ class GenerateQuizModal extends Modal {
 			.setName('Filter by decks')
 			.setDesc('Select which decks to include (leave all unchecked for all decks)');
 
-		// Get all available decks
-		const allCards = this.plugin.storage.getAllCards();
+		// Get all available decks (exclude archived)
+		const allCards = this.plugin.storage.getActiveCards();
 		const deckSet = new Set<string>();
 		allCards.forEach(card => {
 			if (card.deck) {
@@ -337,7 +347,7 @@ class GenerateQuizModal extends Modal {
 		}
 
 		// Get available cards
-		let availableCards = this.plugin.storage.getAllCards();
+		let availableCards = this.plugin.storage.getActiveCards();
 
 		// Apply deck filter if specified
 		if (this.config.deckFilter && this.config.deckFilter.length > 0) {
@@ -526,7 +536,7 @@ class GenerateQuizModal extends Modal {
 
 		try {
 			// Validate at least one question type
-			if (!this.config.includeMultipleChoice && !this.config.includeFillBlank && !this.config.includeTrueFalse) {
+			if (!this.config.includeMultipleChoice && !this.config.includeFillBlank && !this.config.includeTrueFalse && !this.config.includeMatch) {
 				new Notice('Please select at least one question type');
 				return;
 			}
@@ -536,7 +546,7 @@ class GenerateQuizModal extends Modal {
 			const title = titleInput?.value || 'Untitled Quiz';
 
 			// Get cards
-			let cards = this.plugin.storage.getAllCards();
+			let cards = this.plugin.storage.getActiveCards();
 
 			// Apply card selection filter if AI is enabled and cards are selected
 			if (this.config.useAI && this.config.selectedCardIds && this.config.selectedCardIds.length > 0) {

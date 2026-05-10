@@ -4,7 +4,9 @@
  */
 
 import { FlashlyCard } from '../models/card';
-import { QuizQuestion, QuizQuestionType, QuizConfig } from '../models/quiz';
+import { QuizQuestion, QuizQuestionType, QuizConfig, QuizMatchPair } from '../models/quiz';
+
+const MATCH_PAIRS_PER_QUESTION = 4;
 
 export class TraditionalQuizGenerator {
 	/**
@@ -21,6 +23,7 @@ export class TraditionalQuizGenerator {
 		if (config.includeMultipleChoice) availableTypes.push('multiple-choice');
 		if (config.includeFillBlank) availableTypes.push('fill-blank');
 		if (config.includeTrueFalse) availableTypes.push('true-false');
+		if (config.includeMatch) availableTypes.push('match');
 
 		if (availableTypes.length === 0) {
 			throw new Error('At least one question type must be enabled');
@@ -40,22 +43,31 @@ export class TraditionalQuizGenerator {
 			const count = questionsPerType + (typeIndex < remainder ? 1 : 0);
 
 			for (let i = 0; i < count && cardIndex < shuffledCards.length; i++) {
-				const card = shuffledCards[cardIndex];
-				cardIndex++;
+				const consumedCards = type === 'match'
+					? shuffledCards.slice(cardIndex, cardIndex + MATCH_PAIRS_PER_QUESTION)
+					: [shuffledCards[cardIndex]];
+				cardIndex += type === 'match' ? MATCH_PAIRS_PER_QUESTION : 1;
 
 				try {
 					let question: QuizQuestion | null = null;
 
 					switch (type) {
-						case 'multiple-choice':
-							question = this.generateMultipleChoice(card, cards);
+						case 'multiple-choice': {
+							question = this.generateMultipleChoice(consumedCards[0], cards);
 							break;
-						case 'fill-blank':
-							question = this.generateFillBlank(card);
+						}
+						case 'fill-blank': {
+							question = this.generateFillBlank(consumedCards[0]);
 							break;
-						case 'true-false':
-							question = this.generateTrueFalse(card, cards);
+						}
+						case 'true-false': {
+							question = this.generateTrueFalse(consumedCards[0], cards);
 							break;
+						}
+						case 'match': {
+							question = this.generateMatch(consumedCards);
+							break;
+						}
 					}
 
 					if (question) {
@@ -70,24 +82,33 @@ export class TraditionalQuizGenerator {
 
 		// If we didn't generate enough questions, fill with any available cards
 		while (questions.length < config.questionCount && cardIndex < shuffledCards.length) {
-			const card = shuffledCards[cardIndex];
-			cardIndex++;
-
 			// Try each type until one succeeds
 			for (const type of availableTypes) {
 				try {
+					const consumedCards = type === 'match'
+						? shuffledCards.slice(cardIndex, cardIndex + MATCH_PAIRS_PER_QUESTION)
+						: [shuffledCards[cardIndex]];
+					cardIndex += type === 'match' ? MATCH_PAIRS_PER_QUESTION : 1;
+
 					let question: QuizQuestion | null = null;
 
 					switch (type) {
-						case 'multiple-choice':
-							question = this.generateMultipleChoice(card, cards);
+						case 'multiple-choice': {
+							question = this.generateMultipleChoice(consumedCards[0], cards);
 							break;
-						case 'fill-blank':
-							question = this.generateFillBlank(card);
+						}
+						case 'fill-blank': {
+							question = this.generateFillBlank(consumedCards[0]);
 							break;
-						case 'true-false':
-							question = this.generateTrueFalse(card, cards);
+						}
+						case 'true-false': {
+							question = this.generateTrueFalse(consumedCards[0], cards);
 							break;
+						}
+						case 'match': {
+							question = this.generateMatch(consumedCards);
+							break;
+						}
 					}
 
 					if (question) {
@@ -101,6 +122,31 @@ export class TraditionalQuizGenerator {
 		}
 
 		return questions.slice(0, config.questionCount);
+	}
+
+	/**
+	 * Generate a match question from a group of cards
+	 */
+	private generateMatch(cards: FlashlyCard[]): QuizQuestion | null {
+		const usableCards = cards.filter(card => card.front.trim() !== '' && card.back.trim() !== '');
+		if (usableCards.length < MATCH_PAIRS_PER_QUESTION) {
+			return null;
+		}
+
+		const selectedCards = usableCards.slice(0, MATCH_PAIRS_PER_QUESTION);
+		const pairs: QuizMatchPair[] = selectedCards.map(card => ({
+			left: card.front.trim(),
+			right: card.back.trim(),
+			sourceCardId: card.id
+		}));
+
+		return {
+			id: `q-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+			type: 'match',
+			prompt: 'Match each term to its definition.',
+			correctAnswer: pairs,
+			sourceCardId: selectedCards[0].id
+		};
 	}
 
 	/**

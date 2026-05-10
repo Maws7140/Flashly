@@ -5,7 +5,11 @@
 
 import { ItemView, WorkspaceLeaf, setIcon, MarkdownRenderer, Component, Notice, App } from 'obsidian';
 import type FlashlyPlugin from '../../main';
-import { Quiz, QuizQuestion, checkAnswer, calculateQuizScore } from '../models/quiz';
+import { Quiz, QuizQuestion, checkAnswer, calculateQuizScore, QuizMatchPair, QuizAnswer } from '../models/quiz';
+import { FSRSScheduler } from '../scheduler/fsrs-scheduler';
+import { SM2Scheduler } from '../scheduler/sm2-scheduler';
+import { SchedulerStrategy } from '../scheduler/scheduler-types';
+import { Rating } from 'ts-fsrs';
 import { convertAudioWikilinks, postProcessAudioElements } from '../utils/audio-utils';
 
 export const QUIZ_VIEW_TYPE = 'flashly-quiz-view';
@@ -23,6 +27,8 @@ export class QuizView extends ItemView {
 	private keydownHandler: (evt: KeyboardEvent) => void;
 	private component: Component | null = null;
 	private debounceTimer: number | null = null;
+	private selectedMatchItem: { side: 'left' | 'right'; value: string; sourceCardId?: string } | null = null;
+	private matchLayoutCache: Map<string, { left: QuizMatchPair[]; right: QuizMatchPair[] }> = new Map();
 
 	// Learn mode state
 	private learnModeEnabled = false;
@@ -95,6 +101,9 @@ export class QuizView extends ItemView {
 			// Resume from saved position if available
 			this.currentQuestionIndex = quiz.currentQuestionIndex ?? 0;
 		}
+
+		this.selectedMatchItem = null;
+		this.matchLayoutCache.clear();
 
 		void this.render();
 	}
@@ -279,6 +288,8 @@ export class QuizView extends ItemView {
 			await this.renderTrueFalse(answerArea, question);
 		} else if (question.type === 'audio-prompt') {
 			this.renderAudioPrompt(answerArea, question);
+		} else if (question.type === 'match') {
+			await this.renderMatch(answerArea, question);
 		}
 
 		// Check if answer area needs scroll indicator
@@ -368,6 +379,8 @@ export class QuizView extends ItemView {
 			} else {
 				hints.push('T/F select');
 			}
+		} else if (question.type === 'match') {
+			hints.push('click one term and one definition');
 		}
 
 		hints.forEach((hint, index) => {
@@ -517,6 +530,106 @@ export class QuizView extends ItemView {
 		}
 	}
 
+	private async renderMatch(container: HTMLElement, question: QuizQuestion): Promise<void> {
+		const pairs = this.getMatchPairs(question);
+		if (pairs.length === 0) {
+			container.createDiv({ text: 'No match pairs available.', cls: 'quiz-warning' });
+			return;
+		}
+
+		const layout = this.getMatchLayout(question, pairs);
+		const currentAnswer = Array.isArray(question.userAnswer) ? question.userAnswer : [];
+
+		const instructions = container.createDiv({ cls: 'quiz-match-instructions' });
+		instructions.setText('Select one term and one definition to build each pair.');
+
+		const board = container.createDiv({ cls: 'quiz-match-board' });
+		const leftColumn = board.createDiv({ cls: 'quiz-match-column' });
+		leftColumn.createEl('h4', { text: 'Terms', cls: 'quiz-match-column-title' });
+		const rightColumn = board.createDiv({ cls: 'quiz-match-column' });
+		rightColumn.createEl('h4', { text: 'Definitions', cls: 'quiz-match-column-title' });
+
+		const matchedValues = new Set<string>();
+		for (const pair of currentAnswer as QuizMatchPair[]) {
+			matchedValues.add(pair.left.trim().toLowerCase());
+			matchedValues.add(pair.right.trim().toLowerCase());
+		}
+
+		const selectedValue = this.selectedMatchItem?.value.trim().toLowerCase() ?? null;
+
+		const renderMatchItem = async (
+			column: HTMLElement,
+			item: QuizMatchPair,
+			side: 'left' | 'right'
+		): Promise<void> => {
+			const text = side === 'left' ? item.left : item.right;
+			const itemBtn = column.createEl('button', { cls: 'quiz-match-item' });
+			const itemContent = itemBtn.createDiv({ cls: 'quiz-match-item-content' });
+
+			if (this.component) {
+				const sourcePath = item.sourceCardId ? this.getSourceCardPath(item.sourceCardId) : '';
+				const itemMarkdown = convertAudioWikilinks(text, sourcePath, this.app);
+				await MarkdownRenderer.render(this.app, itemMarkdown, itemContent, sourcePath, this.component);
+				postProcessAudioElements(itemContent, this.app, sourcePath);
+			} else {
+				itemContent.setText(text);
+			}
+
+			const lower = text.trim().toLowerCase();
+			if (matchedValues.has(lower)) {
+				itemBtn.addClass('quiz-match-item-matched');
+				itemBtn.setAttr('disabled', 'true');
+			}
+
+			if (selectedValue === lower) {
+				itemBtn.addClass('quiz-match-item-selected');
+			}
+
+			itemBtn.addEventListener('click', (e) => {
+				e.preventDefault();
+				if (matchedValues.has(lower)) {
+					return;
+				}
+				this.handleMatchSelection(question, side, text, item.sourceCardId);
+			});
+		};
+
+		for (const item of layout.left) {
+			await renderMatchItem(leftColumn, item, 'left');
+		}
+
+		for (const item of layout.right) {
+			await renderMatchItem(rightColumn, item, 'right');
+		}
+
+		const matchedPairs = container.createDiv({ cls: 'quiz-match-pairs' });
+		matchedPairs.createEl('h4', { text: 'Matched pairs', cls: 'quiz-match-pairs-title' });
+
+		if (currentAnswer.length === 0) {
+			matchedPairs.createDiv({ text: 'No pairs matched yet.', cls: 'quiz-match-empty' });
+		} else {
+			currentAnswer.forEach((pair, index) => {
+				const pairRow = matchedPairs.createDiv({ cls: 'quiz-match-pair-row' });
+				pairRow.createSpan({ text: pair.left, cls: 'quiz-match-pair-term' });
+				pairRow.createSpan({ text: '↔', cls: 'quiz-match-pair-arrow' });
+				pairRow.createSpan({ text: pair.right, cls: 'quiz-match-pair-definition' });
+
+				const removeBtn = pairRow.createEl('button', { text: 'Remove', cls: 'quiz-match-remove-btn' });
+				removeBtn.addEventListener('click', (e) => {
+					e.preventDefault();
+					this.removeMatchPair(question, index);
+				});
+			});
+		}
+
+		const actions = container.createDiv({ cls: 'quiz-match-actions' });
+		const resetBtn = actions.createEl('button', { text: 'Reset matches', cls: 'quiz-nav-btn' });
+		resetBtn.addEventListener('click', (e) => {
+			e.preventDefault();
+			this.resetMatchPairs(question);
+		});
+	}
+
 	/**
 	 * Handle answer check in learn mode
 	 */
@@ -526,7 +639,7 @@ export class QuizView extends ItemView {
 
 		if (!question) return;
 
-		if (!question.userAnswer && question.userAnswer !== 0) {
+		if (!this.hasProvidedAnswer(question)) {
 			new Notice('Please select an answer first');
 			return;
 		}
@@ -611,6 +724,48 @@ export class QuizView extends ItemView {
 			new Notice('Failed to save quiz results');
 		}
 
+		// Apply scheduling changes for studied cards so the FSRS/SM2 planner
+		// treats this deck as having been studied. We create a scheduler
+		// matching user settings and apply a conservative rating based on
+		// per-question attempts (first-pass correct -> Good, otherwise Hard).
+		try {
+			const schedulerType = this.plugin.settings.review.scheduler;
+			const scheduler: SchedulerStrategy = schedulerType === 'sm2' ? new SM2Scheduler() : new FSRSScheduler();
+
+			// Collect per-card attempt counts from quiz questions
+			const perCardAttempts: Map<string, number> = new Map();
+			for (const q of this.currentQuiz.questions) {
+				if (q.sourceCardId) {
+					perCardAttempts.set(q.sourceCardId, Math.max(1, q.attemptCount || 1));
+				}
+			}
+
+			let updatedCount = 0;
+			for (const [cardId, attempts] of perCardAttempts.entries()) {
+				const card = this.plugin.storage.getCard(cardId);
+				if (!card) continue;
+
+				const rating = attempts === 1 ? Rating.Good : Rating.Hard;
+				try {
+					const outcome = scheduler.applyRating(card, rating, new Date());
+					this.plugin.storage.updateCard(card.id, { fsrsCard: outcome.updatedCard.fsrsCard });
+					updatedCount++;
+				} catch (err) {
+					this.plugin.logger.debug('Failed to apply scheduler rating for card', cardId, err);
+				}
+			}
+
+			if (updatedCount > 0) {
+				await this.plugin.storage.save();
+				if (this.plugin) {
+					this.plugin.refreshBrowserViews();
+				}
+				this.plugin.logger.debug(`Applied scheduling to ${updatedCount} cards from learn-mode quiz`);
+			}
+		} catch (err) {
+			this.plugin.logger.debug('Error while updating scheduling after learn-mode quiz', err);
+		}
+
 		// Render results
 		await this.render();
 	}
@@ -684,7 +839,11 @@ export class QuizView extends ItemView {
 	/**
 	 * Format answer for display
 	 */
-	private formatAnswer(question: QuizQuestion, answer: string | number): string {
+	private formatAnswer(question: QuizQuestion, answer: QuizAnswer): string {
+		if (Array.isArray(answer)) {
+			return answer.map(pair => `${pair.left} ↔ ${pair.right}`).join('; ');
+		}
+
 		if (question.type === 'multiple-choice' && typeof answer === 'number' && question.options) {
 			return question.options[answer] || String(answer);
 		}
@@ -818,9 +977,13 @@ export class QuizView extends ItemView {
 		});
 	}
 
-	private getAnswerDisplay(question: QuizQuestion, answer: string | number | undefined): string {
+	private getAnswerDisplay(question: QuizQuestion, answer: QuizAnswer | undefined): string {
 		if (answer === undefined || answer === null) {
 			return '(no answer)';
+		}
+
+		if (Array.isArray(answer)) {
+			return answer.map(pair => `${pair.left} ↔ ${pair.right}`).join('; ');
 		}
 
 		if (question.type === 'multiple-choice' && typeof answer === 'number' && question.options) {
@@ -840,10 +1003,118 @@ export class QuizView extends ItemView {
 				return 'True/False';
 			case 'audio-prompt':
 				return 'Audio question';
+			case 'match':
+				return 'Matching pairs';
 			default:
 				return type;
 		}
 	}
+
+		private getMatchPairs(question: QuizQuestion): QuizMatchPair[] {
+			if (!Array.isArray(question.correctAnswer)) {
+				return [];
+			}
+
+			return question.correctAnswer.filter((pair): pair is QuizMatchPair => {
+				return typeof pair.left === 'string' && typeof pair.right === 'string';
+			});
+		}
+
+		private getMatchLayout(question: QuizQuestion, pairs: QuizMatchPair[]): { left: QuizMatchPair[]; right: QuizMatchPair[] } {
+			const cached = this.matchLayoutCache.get(question.id);
+			if (cached) {
+				return cached;
+			}
+
+			const shuffle = (items: QuizMatchPair[]): QuizMatchPair[] => {
+				const result = [...items];
+				for (let i = result.length - 1; i > 0; i--) {
+					const j = Math.floor(Math.random() * (i + 1));
+					[result[i], result[j]] = [result[j], result[i]];
+				}
+				return result;
+			};
+
+			const layout = {
+				left: shuffle(pairs),
+				right: shuffle(pairs)
+			};
+			this.matchLayoutCache.set(question.id, layout);
+			return layout;
+		}
+
+		private handleMatchSelection(question: QuizQuestion, side: 'left' | 'right', value: string, sourceCardId?: string): void {
+			const currentAnswer = Array.isArray(question.userAnswer) ? [...question.userAnswer] : [];
+			const normalizedValue = value.trim().toLowerCase();
+
+			if (!this.selectedMatchItem) {
+				this.selectedMatchItem = { side, value, sourceCardId };
+				void this.render();
+				return;
+			}
+
+			if (this.selectedMatchItem.value.trim().toLowerCase() === normalizedValue) {
+				this.selectedMatchItem = null;
+				void this.render();
+				return;
+			}
+
+			if (this.selectedMatchItem.side === side) {
+				this.selectedMatchItem = { side, value, sourceCardId };
+				void this.render();
+				return;
+			}
+
+			const left = this.selectedMatchItem.side === 'left' ? this.selectedMatchItem.value : value;
+			const right = this.selectedMatchItem.side === 'right' ? this.selectedMatchItem.value : value;
+			const pair: QuizMatchPair = {
+				left,
+				right,
+				sourceCardId: this.selectedMatchItem.sourceCardId || sourceCardId
+			};
+
+			const alreadyMatched = currentAnswer.some(existing =>
+				existing.left.trim().toLowerCase() === pair.left.trim().toLowerCase() ||
+				existing.right.trim().toLowerCase() === pair.right.trim().toLowerCase()
+			);
+
+			if (!alreadyMatched) {
+				currentAnswer.push(pair);
+				question.userAnswer = currentAnswer;
+				void this.saveQuizProgress();
+			}
+
+			this.selectedMatchItem = null;
+			void this.render();
+		}
+
+		private removeMatchPair(question: QuizQuestion, index: number): void {
+			if (!Array.isArray(question.userAnswer)) {
+				return;
+			}
+
+			const updated = [...question.userAnswer];
+			updated.splice(index, 1);
+			question.userAnswer = updated;
+			this.selectedMatchItem = null;
+			void this.saveQuizProgress();
+			void this.render();
+		}
+
+		private resetMatchPairs(question: QuizQuestion): void {
+			question.userAnswer = [];
+			this.selectedMatchItem = null;
+			void this.saveQuizProgress();
+			void this.render();
+		}
+
+		private hasProvidedAnswer(question: QuizQuestion): boolean {
+			if (Array.isArray(question.userAnswer)) {
+				return question.userAnswer.length > 0;
+			}
+
+			return question.userAnswer !== undefined && question.userAnswer !== null && question.userAnswer !== '';
+		}
 
 	private handleKeydown(evt: KeyboardEvent): void {
 		// Don't handle shortcuts if user is typing in an input field

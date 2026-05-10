@@ -56,10 +56,10 @@ export class TFile {
   basename: string;
   extension: string;
   
-  constructor(path: string) {
-    this.path = path;
-    this.basename = path.split('/').pop()?.replace(/\.[^/.]+$/, '') || '';
-    this.extension = path.split('.').pop() || '';
+  constructor(path?: string) {
+    this.path = path || '';
+    this.basename = (this.path && this.path.split('/').pop()?.replace(/\.[^/.]+$/, '')) || '';
+    this.extension = (this.path && this.path.split('.').pop()) || '';
   }
 }
 
@@ -154,6 +154,24 @@ export class Modal {
   
   onClose(): void {
     // Override in subclass
+  }
+}
+
+// Minimal SuggestModal mock implementation used in tests
+export class SuggestModal<T> extends Modal {
+  placeholder?: string;
+  constructor(app: App) {
+    super(app);
+  }
+  setPlaceholder(text: string): this {
+    this.placeholder = text;
+    return this;
+  }
+  open(): void {
+    // no-op for tests
+  }
+  close(): void {
+    // no-op for tests
   }
 }
 

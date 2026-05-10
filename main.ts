@@ -32,7 +32,7 @@ export default class FlashlyPlugin extends Plugin {
 	exportService: ExportService;
 	exportCommand: ExportCommand;
 	replayTutorialCommand: ReplayTutorialCommand;
-	statusBarItem: HTMLElement;
+	statusBarItem: HTMLElement | null = null;
 	logger: Logger;
 
 	async onload() {
@@ -150,14 +150,19 @@ export default class FlashlyPlugin extends Plugin {
 			void this.activateBrowserView();
 		});
 
-		// Add status bar item
-		this.statusBarItem = this.addStatusBarItem();
-		this.updateStatusBar();
+		// Add status bar item when the platform exposes one.
+		try {
+			this.statusBarItem = this.addStatusBarItem();
+			this.updateStatusBar();
 
-		// Update status bar every 60 seconds
-		this.registerInterval(
-			window.setInterval(() => this.updateStatusBar(), 60000)
-		);
+			// Update status bar every 60 seconds only if it exists.
+			this.registerInterval(
+				window.setInterval(() => this.updateStatusBar(), 60000)
+			);
+		} catch (error) {
+			console.warn('Flashly: status bar unavailable on this platform', error);
+			this.statusBarItem = null;
+		}
 
 		// Add settings tab
 		this.addSettingTab(new FlashlySettingTab(this.app, this));

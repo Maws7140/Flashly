@@ -35,7 +35,7 @@ export class RefreshDecksCommand {
 		}
 
 		const deckSet = selection ? new Set(selection.map(deck => deck.toLowerCase())) : null;
-		const cards = this.storage.getAllCards();
+		const cards = this.storage.getActiveCards();
 		const now = new Date();
 		let updatedCount = 0;
 

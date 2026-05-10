@@ -13,10 +13,12 @@ interface ConversionOptions {
 export class MarkdownToHTMLConverter {
   private codeBlockPlaceholders: Map<string, string>;
   private htmlTagPlaceholders: Map<string, string>;
+    private inlineCodePlaceholders: Map<string, string>;
   
   constructor(private options: ConversionOptions) {
     this.codeBlockPlaceholders = new Map();
     this.htmlTagPlaceholders = new Map();
+    this.inlineCodePlaceholders = new Map();
   }
 
   convert(markdown: string): string {
@@ -79,8 +81,9 @@ export class MarkdownToHTMLConverter {
   }
 
   private protectHTMLTags(text: string): string {
-    // Match HTML tags and replace with placeholders
-    return text.replace(/<[^>]+>/g, (match) => {
+    // Match real HTML tags (start with a letter or "/") and replace with placeholders.
+    // This avoids matching our internal placeholders which start with "<<<".
+    return text.replace(/<(?=[A-Za-z\/])[^>]+>/g, (match) => {
       const placeholder = `<<<HTMLTAG${Date.now()}N${this.htmlTagPlaceholders.size}>>>`;
       this.htmlTagPlaceholders.set(placeholder, match);
       return placeholder;
@@ -88,7 +91,8 @@ export class MarkdownToHTMLConverter {
   }
 
   private restoreHTMLTags(text: string): string {
-    for (const [placeholder, html] of this.htmlTagPlaceholders.entries()) {
+    const entries = Array.from(this.htmlTagPlaceholders.entries()).reverse();
+    for (const [placeholder, html] of entries) {
       text = text.replace(placeholder, html);
     }
     return text;
@@ -96,6 +100,9 @@ export class MarkdownToHTMLConverter {
 
   private restoreCodeBlocks(text: string): string {
     for (const [placeholder, html] of this.codeBlockPlaceholders.entries()) {
+      text = text.replace(placeholder, html);
+    }
+    for (const [placeholder, html] of this.inlineCodePlaceholders.entries()) {
       text = text.replace(placeholder, html);
     }
     return text;
@@ -236,9 +243,9 @@ export class MarkdownToHTMLConverter {
 
   private convertInlineCode(text: string): string {
     return text.replace(/`([^`]+)`/g, (match, code) => {
-      const placeholder = `<<<INLINECODE${Date.now()}N${this.htmlTagPlaceholders.size}>>>`;
+      const placeholder = `@@INLINECODE${Date.now()}N${this.inlineCodePlaceholders.size}@@`;
       const html = `<code>${this.escapeHTML(code)}</code>`;
-      this.htmlTagPlaceholders.set(placeholder, html);
+      this.inlineCodePlaceholders.set(placeholder, html);
       return placeholder;
     });
   }
@@ -249,7 +256,6 @@ export class MarkdownToHTMLConverter {
     
     // Standard Markdown: ![alt](url)
     text = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">');
-    
     return text;
   }
 
@@ -268,7 +274,8 @@ export class MarkdownToHTMLConverter {
     // Process * and _ (after bold to avoid conflicts)
     // Use negative lookbehind/lookahead to avoid matching ** or __
     text = text.replace(/(?<!\*)\*(?!\*)([^*]+)\*(?!\*)/g, '<em>$1</em>');
-    text = text.replace(/(?<!_)_(?!_)([^_]+)_(?!_)/g, '<em>$1</em>');
+    // Underscore emphasis should not trigger inside words like link_with_underscores
+    text = text.replace(/(^|[^\w])_(?!_)([^_]+)_(?!_)(?=[^\w]|$)/g, '$1<em>$2</em>');
     return text;
   }
 

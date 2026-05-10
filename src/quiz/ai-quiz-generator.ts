@@ -4,7 +4,7 @@
  */
 
 import { FlashlyCard } from '../models/card';
-import { QuizQuestion, QuizConfig, AIQuizSettings, AIQuizGenerationResponse, QuizQuestionType } from '../models/quiz';
+import { QuizQuestion, QuizConfig, AIQuizSettings, AIQuizGenerationResponse, QuizQuestionType, QuizMatchPair } from '../models/quiz';
 import { requestUrl, type RequestUrlResponse } from 'obsidian';
 import type { Logger } from '../utils/logger';
 import { extractAudioWikilinks, removeAudioWikilinks } from '../utils/audio-utils';
@@ -14,7 +14,7 @@ interface ParsedAIQuestion {
 	type: QuizQuestionType;
 	prompt: string;
 	options?: string[];
-	correctAnswer: string | number;
+	correctAnswer: string | number | QuizMatchPair[];
 	explanation?: string;
 }
 
@@ -470,6 +470,18 @@ export class AIQuizGenerator {
 				explanation: "Optional explanation"
 			});
 		}
+		if (config.includeMatch) {
+			questionTypes.push('match');
+			exampleQuestions.push({
+				type: "match",
+				prompt: "Match each term to its definition",
+				correctAnswer: [
+					{ left: "Term A", right: "Definition A" },
+					{ left: "Term B", right: "Definition B" }
+				],
+				explanation: "Optional explanation"
+			});
+		}
 		
 		// Check if any cards have audio
 		const hasAudio = Object.values(audioMetadata).some(m => m.front.length > 0 || m.back.length > 0);
@@ -517,6 +529,7 @@ ${cards.map((card, i) => {
 5. For multiple-choice questions, provide 4 options with the correct answer
 6. For fill-in-the-blank, create a clear prompt with a blank to fill
 7. For true-false, create statements that test understanding
+7. For match questions, provide an array of objects in correctAnswer with left and right values
 8. For audio-prompt questions, the prompt should contain [AUDIO:X] placeholders for listening exercises
 9. Make questions clear, unambiguous, and test real understanding
 	10. Use varied difficulty levels
