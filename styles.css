@@ -235,6 +235,82 @@
   box-shadow: 0 0 0 3px rgba(var(--interactive-accent-rgb), 0.1);
 }
 
+/* Deck Tabs */
+.deck-tabs-container {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  padding-bottom: 8px;
+}
+
+.deck-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-weight: 500;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.deck-tab:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.deck-tab.is-active {
+  color: var(--interactive-accent);
+  background: rgba(var(--interactive-accent-rgb), 0.1);
+}
+
+.deck-tab.is-active::after {
+  content: '';
+  position: absolute;
+  bottom: -9px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--interactive-accent);
+  border-radius: 3px 3px 0 0;
+}
+
+.deck-tab-icon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deck-tab-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.deck-tab-label {
+  font-size: 0.95em;
+}
+
+.deck-tab-count {
+  font-size: 0.75em;
+  background: var(--background-modifier-border);
+  color: var(--text-muted);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+  min-width: 1.5em;
+  text-align: center;
+}
+
+.deck-tab.is-active .deck-tab-count {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
 /* Deck Grid */
 .deck-grid {
   display: grid;
@@ -362,34 +438,11 @@
 }
 
 .deck-card-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
+  display: none;
 }
 
 .deck-action-btn {
-  width: 32px;
-  height: 32px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 6px;
-  background: var(--background-secondary);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.deck-action-btn:hover {
-  border-color: var(--interactive-accent);
-  color: var(--interactive-accent);
-  background: var(--background-modifier-hover);
-  transform: translateY(-1px);
-}
-
-.deck-action-btn:active {
-  transform: translateY(0);
+  display: none;
 }
 
 .deck-action-icon {
@@ -457,30 +510,33 @@
 /* Deck Card Actions (Star/Archive) */
 .deck-card-actions {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 12px;
+  right: 12px;
   display: flex;
   gap: 8px;
   z-index: 10;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.deck-card:hover .deck-card-actions {
+  opacity: 1;
 }
 
 .deck-action-btn {
+  width: 34px;
+  height: 34px;
   background: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
-  border-radius: 6px;
-  padding: 6px;
+  border-radius: 8px;
+  padding: 0;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.deck-card:hover .deck-action-btn {
-  border-color: var(--background-modifier-border-hover);
-  color: var(--text-normal);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
 .deck-action-btn:hover {
@@ -488,7 +544,11 @@
   color: var(--interactive-accent) !important;
   border-color: var(--interactive-accent) !important;
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+.deck-action-btn:active {
+  transform: translateY(0);
 }
 
 .deck-action-icon {
@@ -505,17 +565,23 @@
 }
 
 .deck-action-btn.is-starred {
-  color: #eab308; /* yellow-500 */
-  border-color: rgba(234, 179, 8, 0.3);
+  color: #f59e0b !important; /* amber-500 */
+  border-color: rgba(245, 158, 11, 0.4) !important;
+  background: rgba(245, 158, 11, 0.05) !important;
 }
 
 .deck-action-btn.is-starred svg {
-  fill: #eab308;
+  fill: #f59e0b;
 }
 
 .deck-action-btn.is-archived {
-  color: var(--text-error);
-  border-color: rgba(var(--text-error-rgb), 0.3);
+  color: #ef4444 !important; /* red-500 */
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  background: rgba(239, 68, 68, 0.05) !important;
+}
+
+.deck-action-btn.is-archived svg {
+  fill: rgba(239, 68, 68, 0.1);
 }
 
 /* Archived deck card state */

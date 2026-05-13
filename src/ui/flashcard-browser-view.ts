@@ -26,9 +26,9 @@ export class FlashcardBrowserView extends ItemView {
   private deckGridContainer: HTMLElement | null = null;
   private isRendering = false;
   private needsRerender = false;
-  private showArchived = false;
   private activeLeafRefreshTimeout: number | null = null;
   private currentAudioElements: HTMLAudioElement[] = [];
+  private deckFilterTab: 'all' | 'starred' | 'archived' = 'all';
 
   constructor(leaf: WorkspaceLeaf, plugin: FlashlyPlugin) {
     super(leaf);
@@ -118,7 +118,7 @@ export class FlashcardBrowserView extends ItemView {
    * Refresh cards from storage
    */
   private refreshCards(): void {
-    const cards = this.showArchived 
+    const cards = this.deckFilterTab === 'archived' 
       ? this.plugin.storage.getAllCards() 
       : this.plugin.storage.getActiveCards();
     this.viewModel.setCards(cards);
@@ -176,6 +176,9 @@ export class FlashcardBrowserView extends ItemView {
 
     // Header with stats
     this.renderDeckListHeader(deckListContainer);
+
+    // Tabs for Starred/Archived
+    this.renderDeckTabs(deckListContainer);
 
     // Search box
     this.renderDeckSearch(deckListContainer);
@@ -258,19 +261,6 @@ export class FlashcardBrowserView extends ItemView {
       (this.app as ObsidianApp).commands.executeCommandById('flashly:scan-vault');
     });
 
-    // Show Archived Toggle
-    const archiveToggleBtn = headerActions.createEl('button', {
-      cls: `deck-header-btn ${this.showArchived ? 'is-active' : ''}`,
-      attr: { 'aria-label': this.showArchived ? 'Hide archived decks' : 'Show archived decks' },
-    });
-    const archiveToggleIcon = archiveToggleBtn.createSpan({ cls: 'deck-btn-icon' });
-    setIcon(archiveToggleIcon, this.showArchived ? 'archive-restore' : 'archive');
-    archiveToggleBtn.createSpan({ cls: 'deck-btn-text', text: this.showArchived ? 'Hide archived' : 'Show archived' });
-    archiveToggleBtn.addEventListener('click', () => {
-      this.showArchived = !this.showArchived;
-      this.refreshCards();
-    });
-
     const stats = this.viewModel.getStatistics();
     const statsText = header.createDiv({ cls: 'deck-list-stats' });
     statsText.createSpan({ text: `${stats.deckCount} decks` });
@@ -278,6 +268,44 @@ export class FlashcardBrowserView extends ItemView {
     statsText.createSpan({ text: `${stats.totalCards} total cards` });
     statsText.createSpan({ text: ' • ' });
     statsText.createSpan({ text: `${stats.cardsDueToday} due today` });
+  }
+
+  /**
+   * Render tabs for filtering decks (All, Starred, Archived)
+   */
+  private renderDeckTabs(container: HTMLElement) {
+    const tabsContainer = container.createDiv({ cls: 'deck-tabs-container' });
+    
+    const deckList = this.viewModel.getDeckList();
+    const starredCount = deckList.filter(d => this.plugin.storage.isDeckStarred(d.name)).length;
+    const archivedCount = deckList.filter(d => this.plugin.storage.isDeckArchived(d.name)).length;
+    const activeCount = deckList.filter(d => !this.plugin.storage.isDeckArchived(d.name)).length;
+
+    const tabs = [
+      { id: 'all', label: 'All', count: activeCount, icon: 'layers' },
+      { id: 'starred', label: 'Starred', count: starredCount, icon: 'star' },
+      { id: 'archived', label: 'Archived', count: archivedCount, icon: 'archive' },
+    ];
+
+    for (const tab of tabs) {
+      const tabBtn = tabsContainer.createDiv({ 
+        cls: `deck-tab ${this.deckFilterTab === tab.id ? 'is-active' : ''}`,
+        attr: { 'data-tab': tab.id }
+      });
+      
+      const iconEl = tabBtn.createSpan({ cls: 'deck-tab-icon' });
+      setIcon(iconEl, tab.icon);
+      tabBtn.createSpan({ cls: 'deck-tab-label', text: tab.label });
+      
+      if (tab.count > 0) {
+        tabBtn.createSpan({ cls: 'deck-tab-count', text: tab.count.toString() });
+      }
+      
+      tabBtn.addEventListener('click', () => {
+        this.deckFilterTab = tab.id as any;
+        this.refreshCards();
+      });
+    }
   }
 
   /**
@@ -425,12 +453,23 @@ export class FlashcardBrowserView extends ItemView {
     
     const deckList = this.viewModel.getDeckList();
 
+    // Filter by tab
+    let tabFilteredDecks = [...deckList];
+    if (this.deckFilterTab === 'starred') {
+      tabFilteredDecks = deckList.filter(d => this.plugin.storage.isDeckStarred(d.name));
+    } else if (this.deckFilterTab === 'archived') {
+      tabFilteredDecks = deckList.filter(d => this.plugin.storage.isDeckArchived(d.name));
+    } else {
+      // 'all' tab shows all active decks
+      tabFilteredDecks = deckList.filter(d => !this.plugin.storage.isDeckArchived(d.name));
+    }
+
     // Filter by search query
     const filteredDecks = this.deckSearchQuery
-      ? deckList.filter((deck) =>
+      ? tabFilteredDecks.filter((deck) =>
           deck.name.toLowerCase().includes(this.deckSearchQuery.toLowerCase())
         )
-      : deckList;
+      : tabFilteredDecks;
 
     // Sort decks
     const sortedDecks = this.sortDecks(filteredDecks);
