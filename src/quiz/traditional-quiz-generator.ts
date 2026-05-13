@@ -48,6 +48,7 @@ export class TraditionalQuizGenerator {
 					: [shuffledCards[cardIndex]];
 				cardIndex += type === 'match' ? MATCH_PAIRS_PER_QUESTION : 1;
 
+				const cardId = consumedCards[0]?.id ?? 'unknown';
 				try {
 					let question: QuizQuestion | null = null;
 
@@ -74,7 +75,7 @@ export class TraditionalQuizGenerator {
 						questions.push(question);
 					}
 				} catch (error) {
-					console.warn(`Failed to generate ${type} question for card ${card.id}:`, error);
+					console.warn(`Failed to generate ${type} question for card ${cardId}:`, error);
 					// Continue with next card
 				}
 			}

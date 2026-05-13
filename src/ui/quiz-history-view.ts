@@ -5,7 +5,7 @@
 
 import { App, ItemView, WorkspaceLeaf, Modal, Notice, setIcon } from 'obsidian';
 import type FlashlyPlugin from '../../main';
-import { Quiz, QuizQuestion } from '../models/quiz';
+import { Quiz, QuizAnswer, QuizQuestion } from '../models/quiz';
 
 export const QUIZ_HISTORY_VIEW_TYPE = 'flashly-quiz-history-view';
 
@@ -637,9 +637,13 @@ export class QuizHistoryView extends ItemView {
 		return md;
 	}
 
-	private formatAnswerForExport(question: QuizQuestion, answer: string | number | undefined): string {
+	private formatAnswerForExport(question: QuizQuestion, answer: QuizAnswer | undefined): string {
 		if (answer === undefined || answer === null) {
 			return '(no answer)';
+		}
+
+		if (question.type === 'match' && Array.isArray(answer)) {
+			return answer.map(pair => `${pair.left} ↔ ${pair.right}`).join('; ');
 		}
 
 		if (question.type === 'multiple-choice' && typeof answer === 'number' && question.options) {

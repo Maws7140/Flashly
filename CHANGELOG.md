@@ -1,5 +1,20 @@
 # Flashly Plugin - Changelog
 
+## [1.0.12] - Unreleased
+
+### Fixed
+- TBD
+
+---
+
+## [1.0.11] - 2026-05-13
+
+### Fixed
+- Restored the scan command wiring so the Scan vault button works again.
+- Fixed missing styles so deck star and archive controls show up.
+
+---
+
 ## [1.0.9] - 2026-01-21
 
 ### Fixed
