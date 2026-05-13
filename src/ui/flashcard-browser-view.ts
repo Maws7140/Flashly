@@ -26,6 +26,7 @@ export class FlashcardBrowserView extends ItemView {
   private deckGridContainer: HTMLElement | null = null;
   private isRendering = false;
   private needsRerender = false;
+  private showArchived = false;
   private activeLeafRefreshTimeout: number | null = null;
   private currentAudioElements: HTMLAudioElement[] = [];
 
@@ -117,7 +118,9 @@ export class FlashcardBrowserView extends ItemView {
    * Refresh cards from storage
    */
   private refreshCards(): void {
-    const cards = this.plugin.storage.getActiveCards();
+    const cards = this.showArchived 
+      ? this.plugin.storage.getAllCards() 
+      : this.plugin.storage.getActiveCards();
     this.viewModel.setCards(cards);
     void this.render();
   }
@@ -253,6 +256,19 @@ export class FlashcardBrowserView extends ItemView {
     scanBtn.addEventListener('click', () => {
       // Execute scan command - it will show its own notices
       (this.app as ObsidianApp).commands.executeCommandById('flashly:scan-vault');
+    });
+
+    // Show Archived Toggle
+    const archiveToggleBtn = headerActions.createEl('button', {
+      cls: `deck-header-btn ${this.showArchived ? 'is-active' : ''}`,
+      attr: { 'aria-label': this.showArchived ? 'Hide archived decks' : 'Show archived decks' },
+    });
+    const archiveToggleIcon = archiveToggleBtn.createSpan({ cls: 'deck-btn-icon' });
+    setIcon(archiveToggleIcon, this.showArchived ? 'archive-restore' : 'archive');
+    archiveToggleBtn.createSpan({ cls: 'deck-btn-text', text: this.showArchived ? 'Hide archived' : 'Show archived' });
+    archiveToggleBtn.addEventListener('click', () => {
+      this.showArchived = !this.showArchived;
+      this.refreshCards();
     });
 
     const stats = this.viewModel.getStatistics();
@@ -441,6 +457,9 @@ export class FlashcardBrowserView extends ItemView {
     if (deck.hasChildren) {
       card.addClass('deck-card-parent');
     }
+    if (this.plugin.storage.isDeckArchived(deck.name)) {
+      card.addClass('is-archived-deck');
+    }
 
     // Header with hierarchy indicators
     const header = card.createDiv({ cls: 'deck-card-header' });
@@ -522,9 +541,14 @@ export class FlashcardBrowserView extends ItemView {
     // Actions: star and archive
     const actions = card.createDiv({ cls: 'deck-card-actions' });
 
-    const starBtn = actions.createEl('button', { cls: 'deck-action-btn', attr: { 'aria-label': 'Star deck' } });
+    const isStarred = this.plugin.storage.isDeckStarred(deck.name);
+    const starBtn = actions.createEl('button', { 
+      cls: `deck-action-btn ${isStarred ? 'is-starred' : ''}`, 
+      attr: { 'aria-label': isStarred ? 'Unstar deck' : 'Star deck' } 
+    });
     const starIcon = starBtn.createSpan({ cls: 'deck-action-icon' });
-    setIcon(starIcon, this.plugin.storage.isDeckStarred(deck.name) ? 'star' : 'star');
+    setIcon(starIcon, 'star');
+    
     starBtn.addEventListener('click', (evt) => {
       evt.preventDefault();
       evt.stopPropagation();
@@ -536,9 +560,14 @@ export class FlashcardBrowserView extends ItemView {
       })();
     });
 
-    const archiveBtn = actions.createEl('button', { cls: 'deck-action-btn', attr: { 'aria-label': 'Archive deck' } });
+    const isArchived = this.plugin.storage.isDeckArchived(deck.name);
+    const archiveBtn = actions.createEl('button', { 
+      cls: `deck-action-btn ${isArchived ? 'is-archived' : ''}`, 
+      attr: { 'aria-label': isArchived ? 'Unarchive deck' : 'Archive deck' } 
+    });
     const archiveIcon = archiveBtn.createSpan({ cls: 'deck-action-icon' });
     setIcon(archiveIcon, 'archive');
+    
     archiveBtn.addEventListener('click', (evt) => {
       evt.preventDefault();
       evt.stopPropagation();
