@@ -361,6 +361,65 @@
   transform: scale(0.98);
 }
 
+.deck-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.deck-action-btn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.deck-action-btn:hover {
+  border-color: var(--interactive-accent);
+  color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+  transform: translateY(-1px);
+}
+
+.deck-action-btn:active {
+  transform: translateY(0);
+}
+
+.deck-action-icon {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deck-action-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.deck-star-icon {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--interactive-accent);
+  margin-left: 6px;
+}
+
+.deck-star-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
 /* ========== DECK HIERARCHY STYLES ========== */
 
 /* Hierarchy level indicators */

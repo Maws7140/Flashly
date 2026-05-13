@@ -646,7 +646,11 @@ export class QuizView extends ItemView {
 
 		// Check the answer
 		question.checked = true;
-		question.correct = checkAnswer(question, question.userAnswer);
+		const userAnswer = question.userAnswer;
+		if (userAnswer === undefined || userAnswer === null) {
+			return;
+		}
+		question.correct = checkAnswer(question, userAnswer);
 		question.attemptCount = (question.attemptCount || 0) + 1;
 
 		this.answeredQuestions.add(qIndex);
