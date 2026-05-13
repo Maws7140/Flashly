@@ -276,10 +276,11 @@ export class FlashcardBrowserView extends ItemView {
   private renderDeckTabs(container: HTMLElement) {
     const tabsContainer = container.createDiv({ cls: 'deck-tabs-container' });
     
-    const deckList = this.viewModel.getDeckList();
-    const starredCount = deckList.filter(d => this.plugin.storage.isDeckStarred(d.name)).length;
-    const archivedCount = deckList.filter(d => this.plugin.storage.isDeckArchived(d.name)).length;
-    const activeCount = deckList.filter(d => !this.plugin.storage.isDeckArchived(d.name)).length;
+    // Get all known decks from storage to calculate accurate counts for tabs
+    const allDecks = this.plugin.storage.getAllKnownDeckNames();
+    const starredCount = allDecks.filter(name => this.plugin.storage.isDeckStarred(name)).length;
+    const archivedCount = allDecks.filter(name => this.plugin.storage.isDeckArchived(name)).length;
+    const activeCount = allDecks.filter(name => !this.plugin.storage.isDeckArchived(name)).length;
 
     const tabs = [
       { id: 'all', label: 'All', count: activeCount, icon: 'layers' },

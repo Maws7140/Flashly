@@ -76,7 +76,7 @@ describe('ScanCommand', () => {
 
   describe('Command Registration', () => {
     it('should get command ID', () => {
-      expect(scanCommand.getId()).toBe('flashly-scan-vault');
+      expect(scanCommand.getId()).toBe('scan-vault');
     });
 
     it('should get command name', () => {

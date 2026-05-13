@@ -61,8 +61,8 @@ export class StatisticsView extends ItemView {
 		attr: { 'aria-label': 'Refresh statistics' }
 	});
 	setIcon(refreshBtn, 'refresh-cw');
-	refreshBtn.addEventListener('click', () => this.queueRender());		// Get all cards
- 		const cards = this.plugin.storage.getActiveCards();
+	refreshBtn.addEventListener('click', () => this.queueRender());		// Get all cards (including archived)
+ 		const cards = this.plugin.storage.getAllCards();
 
 		// Overview Cards
 		this.renderOverviewCards(container, cards);
@@ -425,7 +425,9 @@ export class StatisticsView extends ItemView {
 		const stats: Record<string, { correct: number; total: number }> = {
 			'multiple-choice': { correct: 0, total: 0 },
 			'fill-blank': { correct: 0, total: 0 },
-			'true-false': { correct: 0, total: 0 }
+			'true-false': { correct: 0, total: 0 },
+			'match': { correct: 0, total: 0 },
+			'audio-prompt': { correct: 0, total: 0 }
 		};
 
 		quizzes.forEach(quiz => {
@@ -453,6 +455,10 @@ export class StatisticsView extends ItemView {
 				return 'Fill in the blank';
 			case 'true-false':
 				return 'True/false';
+			case 'match':
+				return 'Match pairs';
+			case 'audio-prompt':
+				return 'Audio prompt';
 			default:
 				return type;
 		}

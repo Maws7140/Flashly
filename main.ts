@@ -12,7 +12,7 @@ import { ReviewQueueService } from './src/services/review-queue';
 import { QuizStorageService } from './src/services/quiz-storage';
 import { StartReviewCommand } from './src/commands/start-review';
 import { RefreshDecksCommand } from './src/commands/refresh-decks-command';
-import { GenerateQuizCommand } from './src/commands/generate-quiz-command';
+import { GenerateQuizCommand, GenerateMatchQuizCommand } from './src/commands/generate-quiz-command';
 import { ExportService } from './src/services/export-service';
 import { ExportCommand } from './src/commands/export-command';
 import { ReplayTutorialCommand } from './src/commands/replay-tutorial';
@@ -29,6 +29,7 @@ export default class FlashlyPlugin extends Plugin {
 	startReviewCommand: StartReviewCommand;
 	refreshDecksCommand: RefreshDecksCommand;
 	generateQuizCommand: GenerateQuizCommand;
+	generateMatchQuizCommand: GenerateMatchQuizCommand;
 	exportService: ExportService;
 	exportCommand: ExportCommand;
 	replayTutorialCommand: ReplayTutorialCommand;
@@ -106,6 +107,13 @@ export default class FlashlyPlugin extends Plugin {
 			id: this.generateQuizCommand.getId(),
 			name: this.generateQuizCommand.getName(),
 			callback: this.generateQuizCommand.getCallback()
+		});
+
+		this.generateMatchQuizCommand = new GenerateMatchQuizCommand(this.app, this);
+		this.addCommand({
+			id: this.generateMatchQuizCommand.getId(),
+			name: this.generateMatchQuizCommand.getName(),
+			callback: this.generateMatchQuizCommand.getCallback()
 		});
 
 		// Add export command

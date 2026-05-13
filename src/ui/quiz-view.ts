@@ -537,97 +537,145 @@ export class QuizView extends ItemView {
 			return;
 		}
 
-		const layout = this.getMatchLayout(question, pairs);
-		const currentAnswer = Array.isArray(question.userAnswer) ? question.userAnswer : [];
-
-		const instructions = container.createDiv({ cls: 'quiz-match-instructions' });
-		instructions.setText('Select one term and one definition to build each pair.');
-
-		const board = container.createDiv({ cls: 'quiz-match-board' });
-		const leftColumn = board.createDiv({ cls: 'quiz-match-column' });
-		leftColumn.createEl('h4', { text: 'Terms', cls: 'quiz-match-column-title' });
-		const rightColumn = board.createDiv({ cls: 'quiz-match-column' });
-		rightColumn.createEl('h4', { text: 'Definitions', cls: 'quiz-match-column-title' });
-
-		const matchedValues = new Set<string>();
-		for (const pair of currentAnswer as QuizMatchPair[]) {
-			matchedValues.add(pair.left.trim().toLowerCase());
-			matchedValues.add(pair.right.trim().toLowerCase());
+		// Ensure layout is initialized (shuffle terms and definitions together)
+		if (!this.matchLayoutCache.has(question.id)) {
+			const items: { text: string; side: 'left' | 'right'; sourceCardId?: string }[] = [];
+			pairs.forEach(p => {
+				items.push({ text: p.left, side: 'left', sourceCardId: p.sourceCardId });
+				items.push({ text: p.right, side: 'right', sourceCardId: p.sourceCardId });
+			});
+			
+			// Shuffle the items
+			for (let i = items.length - 1; i > 0; i--) {
+				const j = Math.floor(Math.random() * (i + 1));
+				[items[i], items[j]] = [items[j], items[i]];
+			}
+			
+			// Store in cache (reusing the interface, but with a flat structure)
+			this.matchLayoutCache.set(question.id, { left: items as any, right: [] });
 		}
 
+		const layoutItems: any[] = (this.matchLayoutCache.get(question.id) as any).left;
+		const currentAnswer = Array.isArray(question.userAnswer) ? question.userAnswer : [];
+		
+		const matchedTexts = new Set<string>();
+		currentAnswer.forEach((pair: QuizMatchPair) => {
+			matchedTexts.add(pair.left.trim().toLowerCase());
+			matchedTexts.add(pair.right.trim().toLowerCase());
+		});
+
+		const board = container.createDiv({ cls: 'quiz-match-board' });
 		const selectedValue = this.selectedMatchItem?.value.trim().toLowerCase() ?? null;
 
-		const renderMatchItem = async (
-			column: HTMLElement,
-			item: QuizMatchPair,
-			side: 'left' | 'right'
-		): Promise<void> => {
-			const text = side === 'left' ? item.left : item.right;
-			const itemBtn = column.createEl('button', { cls: 'quiz-match-item' });
+		for (const item of layoutItems) {
+			const isMatched = matchedTexts.has(item.text.trim().toLowerCase());
+			if (isMatched) continue; // Don't render matched items
+
+			const itemBtn = board.createEl('button', { cls: 'quiz-match-item' });
 			const itemContent = itemBtn.createDiv({ cls: 'quiz-match-item-content' });
 
 			if (this.component) {
 				const sourcePath = item.sourceCardId ? this.getSourceCardPath(item.sourceCardId) : '';
-				const itemMarkdown = convertAudioWikilinks(text, sourcePath, this.app);
+				const itemMarkdown = convertAudioWikilinks(item.text, sourcePath, this.app);
 				await MarkdownRenderer.render(this.app, itemMarkdown, itemContent, sourcePath, this.component);
 				postProcessAudioElements(itemContent, this.app, sourcePath);
 			} else {
-				itemContent.setText(text);
+				itemContent.setText(item.text);
 			}
 
-			const lower = text.trim().toLowerCase();
-			if (matchedValues.has(lower)) {
-				itemBtn.addClass('quiz-match-item-matched');
-				itemBtn.setAttr('disabled', 'true');
-			}
-
-			if (selectedValue === lower) {
+			if (selectedValue === item.text.trim().toLowerCase()) {
 				itemBtn.addClass('quiz-match-item-selected');
 			}
 
 			itemBtn.addEventListener('click', (e) => {
 				e.preventDefault();
-				if (matchedValues.has(lower)) {
-					return;
-				}
-				this.handleMatchSelection(question, side, text, item.sourceCardId);
+				this.handleMatchSelectionRedesigned(question, item.side, item.text, item.sourceCardId, itemBtn);
 			});
-		};
-
-		for (const item of layout.left) {
-			await renderMatchItem(leftColumn, item, 'left');
 		}
 
-		for (const item of layout.right) {
-			await renderMatchItem(rightColumn, item, 'right');
+		// If all items are matched, show completion message or auto-advance
+		if (matchedTexts.size === layoutItems.length && layoutItems.length > 0) {
+			const emptyMessage = container.createDiv({ cls: 'quiz-match-complete-msg' });
+			emptyMessage.setText('All matched! Press continue.');
+		}
+	}
+
+	private async handleMatchSelectionRedesigned(
+		question: QuizQuestion, 
+		side: 'left' | 'right', 
+		value: string, 
+		sourceCardId: string | undefined,
+		element: HTMLElement
+	): Promise<void> {
+		const currentAnswer = Array.isArray(question.userAnswer) ? [...question.userAnswer] : [];
+		const normalizedValue = value.trim().toLowerCase();
+
+		// Case 1: First selection
+		if (!this.selectedMatchItem) {
+			this.selectedMatchItem = { side, value, sourceCardId };
+			// Store the element for mismatch animation
+			(this as any).selectedElement = element;
+			void this.render();
+			return;
 		}
 
-		const matchedPairs = container.createDiv({ cls: 'quiz-match-pairs' });
-		matchedPairs.createEl('h4', { text: 'Matched pairs', cls: 'quiz-match-pairs-title' });
+		// Case 2: Clicking the same item again
+		if (this.selectedMatchItem.value.trim().toLowerCase() === normalizedValue) {
+			this.selectedMatchItem = null;
+			(this as any).selectedElement = null;
+			void this.render();
+			return;
+		}
 
-		if (currentAnswer.length === 0) {
-			matchedPairs.createDiv({ text: 'No pairs matched yet.', cls: 'quiz-match-empty' });
+		// Case 3: Match attempt
+		const first = this.selectedMatchItem;
+		const second = { side, value, sourceCardId };
+		const pairs = this.getMatchPairs(question);
+		
+		// Check if this is a correct pair
+		const isCorrect = pairs.some(p => 
+			(p.left.trim().toLowerCase() === first.value.trim().toLowerCase() && p.right.trim().toLowerCase() === second.value.trim().toLowerCase()) ||
+			(p.right.trim().toLowerCase() === first.value.trim().toLowerCase() && p.left.trim().toLowerCase() === second.value.trim().toLowerCase())
+		) || (first.sourceCardId === second.sourceCardId && first.sourceCardId !== undefined);
+
+		if (isCorrect) {
+			// Success! Add to matched pairs
+			const left = first.side === 'left' ? first.value : second.value;
+			const right = first.side === 'right' ? first.value : second.value;
+			
+			currentAnswer.push({ left, right, sourceCardId: first.sourceCardId });
+			question.userAnswer = currentAnswer;
+			
+			// Visual feedback: animate success
+			element.addClass('quiz-match-item-matched');
+			if ((this as any).selectedElement) {
+				(this as any).selectedElement.addClass('quiz-match-item-matched');
+			}
+			
+			this.selectedMatchItem = null;
+			(this as any).selectedElement = null;
+			
+			void this.saveQuizProgress();
+			// Delay re-render to allow animation to play
+			setTimeout(() => void this.render(), 400);
 		} else {
-			currentAnswer.forEach((pair, index) => {
-				const pairRow = matchedPairs.createDiv({ cls: 'quiz-match-pair-row' });
-				pairRow.createSpan({ text: pair.left, cls: 'quiz-match-pair-term' });
-				pairRow.createSpan({ text: '↔', cls: 'quiz-match-pair-arrow' });
-				pairRow.createSpan({ text: pair.right, cls: 'quiz-match-pair-definition' });
-
-				const removeBtn = pairRow.createEl('button', { text: 'Remove', cls: 'quiz-match-remove-btn' });
-				removeBtn.addEventListener('click', (e) => {
-					e.preventDefault();
-					this.removeMatchPair(question, index);
-				});
-			});
+			// Fail! Visual feedback: shake and reset
+			element.addClass('quiz-match-item-incorrect');
+			if ((this as any).selectedElement) {
+				(this as any).selectedElement.addClass('quiz-match-item-incorrect');
+			}
+			
+			this.selectedMatchItem = null;
+			const prevElement = (this as any).selectedElement;
+			(this as any).selectedElement = null;
+			
+			// Shake animation duration
+			setTimeout(() => {
+				element.removeClass('quiz-match-item-incorrect');
+				if (prevElement) prevElement.removeClass('quiz-match-item-incorrect');
+				void this.render();
+			}, 400);
 		}
-
-		const actions = container.createDiv({ cls: 'quiz-match-actions' });
-		const resetBtn = actions.createEl('button', { text: 'Reset matches', cls: 'quiz-nav-btn' });
-		resetBtn.addEventListener('click', (e) => {
-			e.preventDefault();
-			this.resetMatchPairs(question);
-		});
 	}
 
 	/**

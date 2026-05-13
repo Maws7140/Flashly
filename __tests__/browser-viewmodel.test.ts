@@ -384,7 +384,7 @@ describe('BrowserViewModel', () => {
 
     it('should calculate cards due today', () => {
       // Use a fixed midday reference to avoid day-boundary flakiness in CI/local timezones.
-      const now = new Date('2026-05-10T12:00:00.000Z');
+      const now = new Date();
       const cards: FlashlyCard[] = [
         createMockCard({ 
           fsrsCard: {

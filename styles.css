@@ -438,77 +438,6 @@
 }
 
 .deck-card-actions {
-  display: none;
-}
-
-.deck-action-btn {
-  display: none;
-}
-
-.deck-action-icon {
-  width: var(--icon-size-sm);
-  height: var(--icon-size-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.deck-action-icon svg {
-  width: 100%;
-  height: 100%;
-}
-
-.deck-star-icon {
-  width: var(--icon-size-sm);
-  height: var(--icon-size-sm);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--interactive-accent);
-  margin-left: 6px;
-}
-
-.deck-star-icon svg {
-  width: 100%;
-  height: 100%;
-}
-
-/* ========== DECK HIERARCHY STYLES ========== */
-
-/* Hierarchy level indicators */
-.deck-card-level-0 {
-  border-left: 3px solid var(--interactive-accent);
-}
-
-.deck-card-level-1 {
-  border-left: 3px solid var(--text-accent);
-  opacity: 0.95;
-}
-
-.deck-card-level-2,
-.deck-card-level-3 {
-  border-left: 3px solid var(--text-muted);
-  opacity: 0.9;
-}
-
-/* Parent deck styling */
-.deck-card-parent {
-  background: var(--background-secondary);
-}
-
-.deck-card-parent .deck-name {
-  font-weight: 600;
-}
-
-/* Indentation for hierarchy */
-.deck-indent {
-  display: inline-block;
-  min-width: 0;
-  flex-shrink: 0;
-}
-
-/* Deck Card Actions (Star/Archive) */
-.deck-card-actions {
   position: absolute;
   top: 12px;
   right: 12px;
@@ -2951,74 +2880,104 @@
 }
 
 .quiz-match-instructions {
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   color: var(--text-muted);
   font-size: 0.95em;
+  text-align: center;
 }
 
 .quiz-match-board {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.quiz-match-column {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-width: 0;
-}
-
-.quiz-match-column-title,
-.quiz-match-pairs-title {
-  margin: 0;
-  font-size: 0.95em;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  perspective: 1000px;
+  min-height: 400px;
+  padding: 10px;
 }
 
 .quiz-match-item {
+  position: relative;
   width: 100%;
-  padding: 14px 16px;
+  aspect-ratio: 1.2;
+  padding: 12px;
   background: var(--background-primary);
-  border: 2px solid var(--background-modifier-border);
-  border-radius: 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   color: var(--text-normal);
-  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 500;
+  user-select: none;
+  overflow: hidden;
 }
 
-.quiz-match-item:hover {
+.quiz-match-item:hover:not(.quiz-match-item-matched) {
+  transform: translateY(-4px) scale(1.02);
   border-color: var(--interactive-accent);
-  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
 }
 
 .quiz-match-item-selected {
   border-color: var(--interactive-accent);
-  background: rgba(var(--interactive-accent-rgb), 0.12);
+  background: var(--background-primary-alt);
+  box-shadow: 0 0 0 3px rgba(var(--interactive-accent-rgb), 0.2), 0 8px 16px rgba(0, 0, 0, 0.12);
+  transform: translateY(-4px) scale(1.02);
 }
 
 .quiz-match-item-matched {
-  opacity: 0.6;
-  cursor: not-allowed;
+  animation: match-success 0.5s ease forwards;
+  pointer-events: none;
+  border-color: #4caf50;
+  background: rgba(76, 175, 80, 0.1);
+  color: #4caf50;
+}
+
+.quiz-match-item-incorrect {
+  animation: match-fail 0.4s ease;
+  border-color: #f44336;
+  background: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+}
+
+@keyframes match-success {
+  0% { transform: scale(1.05); }
+  50% { transform: scale(0.95); opacity: 0.8; }
+  100% { transform: scale(0); opacity: 0; visibility: hidden; }
+}
+
+@keyframes match-fail {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
 }
 
 .quiz-match-item-content {
-  line-height: 1.5;
+  line-height: 1.4;
   overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.95em;
+}
+
+/* Hide columns/titles in redesigned layout */
+.quiz-match-column-title {
+  display: none;
+}
+
+.quiz-match-column {
+  display: contents;
 }
 
 .quiz-match-pairs {
-  margin-top: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: none; /* Redesigned Match doesn't need a summary list */
 }
-
-.quiz-match-pair-row {
-  display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;

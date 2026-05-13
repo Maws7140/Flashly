@@ -19,10 +19,10 @@ class GenerateQuizModal extends Modal {
 	config: QuizConfig;
 	private cardSelectionContainer: HTMLElement | null = null;
 
-	constructor(app: App, plugin: FlashlyPlugin) {
+	constructor(app: App, plugin: FlashlyPlugin, initialConfig?: Partial<QuizConfig>) {
 		super(app);
 		this.plugin = plugin;
-		this.config = { ...DEFAULT_QUIZ_CONFIG };
+		this.config = { ...DEFAULT_QUIZ_CONFIG, ...initialConfig };
 	}
 
 	onOpen() {
@@ -681,6 +681,32 @@ export class GenerateQuizCommand {
 	getCallback(): () => void {
 		return () => {
 			new GenerateQuizModal(this.app, this.plugin).open();
+		};
+	}
+}
+
+export class GenerateMatchQuizCommand {
+	constructor(
+		private app: App,
+		private plugin: FlashlyPlugin
+	) {}
+
+	getId(): string {
+		return 'generate-match-quiz';
+	}
+
+	getName(): string {
+		return 'Generate match quiz';
+	}
+
+	getCallback(): () => void {
+		return () => {
+			new GenerateQuizModal(this.app, this.plugin, {
+				includeMatch: true,
+				includeMultipleChoice: false,
+				includeFillBlank: false,
+				includeTrueFalse: false
+			}).open();
 		};
 	}
 }
