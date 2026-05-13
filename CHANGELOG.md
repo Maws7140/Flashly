@@ -1,5 +1,12 @@
 # Flashly Plugin - Changelog
 
+## [1.0.12] - Unreleased
+
+### Fixed
+- TBD
+
+---
+
 ## [1.0.11] - 2026-05-13
 
 ### Fixed
